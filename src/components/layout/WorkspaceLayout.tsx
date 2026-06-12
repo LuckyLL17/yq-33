@@ -24,11 +24,11 @@ export default function WorkspaceLayout({
     >
       <aside
         className={cn(
-          'w-80 shrink-0',
+          'w-[26rem] shrink-0 min-w-[26rem]',
           'border-r border-stone-200',
-          'bg-white/60 backdrop-blur-sm',
+          'bg-white/70 backdrop-blur-sm',
           'overflow-y-auto',
-          'hidden lg:block'
+          'hidden xl:block'
         )}
       >
         {leftPanel}

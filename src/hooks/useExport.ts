@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import jsPDF from 'jspdf'
+import { useHandwritingRender } from '@/hooks/useHandwritingRender'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 
 interface UseExportReturn {
@@ -9,11 +10,16 @@ interface UseExportReturn {
   exportPDF: () => Promise<void>
 }
 
-export function useExport(canvasRef: React.RefObject<HTMLCanvasElement>): UseExportReturn {
+export function useExport(
+  externalCanvasRef?: React.RefObject<HTMLCanvasElement>
+): UseExportReturn {
   const [isExporting, setIsExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
 
-  const state = useWorkspaceStore()
+  const fileName = useWorkspaceStore((s) => s.fileName)
+  const { pageSize, renderAllCanvases } = useHandwritingRender({
+    externalCanvasRef,
+  })
 
   const downloadBlob = useCallback((blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob)
@@ -23,37 +29,44 @@ export function useExport(canvasRef: React.RefObject<HTMLCanvasElement>): UseExp
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 2000)
   }, [])
 
+  const canvasToBlob = (canvas: HTMLCanvasElement, type = 'image/png'): Promise<Blob> =>
+    new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('canvas.toBlob failed'))),
+        type,
+        1.0
+      )
+    })
+
+  const baseName = () => {
+    if (fileName) {
+      return fileName.replace(/\.[^/.]+$/, '')
+    }
+    return '手写字'
+  }
+
   const exportPNG = useCallback(async () => {
-    if (!canvasRef.current) return
-
     setIsExporting(true)
-    setExportProgress(20)
-
+    setExportProgress(5)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 200))
-      setExportProgress(50)
-
-      const canvas = canvasRef.current
-      const dataUrl = canvas.toDataURL('image/png', 1.0)
-
-      setExportProgress(80)
-
-      const base64 = dataUrl.split(',')[1]
-      const binary = atob(base64)
-      const bytes = new Uint8Array(binary.length)
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i)
+      const canvases = await renderAllCanvases()
+      setExportProgress(25)
+      if (canvases.length === 0) return
+      for (let i = 0; i < canvases.length; i++) {
+        const blob = await canvasToBlob(canvases[i], 'image/png')
+        const name =
+          canvases.length === 1
+            ? '手写字_' + baseName() + '.png'
+            : '手写字_' + baseName() + '_第' + (i + 1) + '页.png'
+        downloadBlob(blob, name)
+        setExportProgress(25 + Math.round(((i + 1) / canvases.length) * 70))
+        if (i < canvases.length - 1) {
+          await new Promise((r) => setTimeout(r, 350))
+        }
       }
-      const blob = new Blob([bytes], { type: 'image/png' })
-
-      const filename = state.fileName
-        ? `手写字_${state.fileName.replace(/\.[^/.]+$/, '')}_第${state.currentPage}页.png`
-        : `手写字_第${state.currentPage}页.png`
-
-      downloadBlob(blob, filename)
       setExportProgress(100)
     } catch (err) {
       console.error('导出PNG失败:', err)
@@ -61,43 +74,34 @@ export function useExport(canvasRef: React.RefObject<HTMLCanvasElement>): UseExp
       setTimeout(() => {
         setIsExporting(false)
         setExportProgress(0)
-      }, 300)
+      }, 400)
     }
-  }, [canvasRef, state.fileName, state.currentPage, downloadBlob])
+  }, [renderAllCanvases, fileName, downloadBlob])
 
   const exportPDF = useCallback(async () => {
-    if (!canvasRef.current) return
-
     setIsExporting(true)
-    setExportProgress(10)
-
+    setExportProgress(5)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      setExportProgress(30)
-
-      const canvas = canvasRef.current
-      const imgData = canvas.toDataURL('image/jpeg', 0.95)
-
-      setExportProgress(60)
-
-      const imgWidth = 210
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
-
+      const canvases = await renderAllCanvases()
+      setExportProgress(25)
+      if (canvases.length === 0) return
+      const { width, height } = pageSize
+      const isLandscape = width > height
       const pdf = new jsPDF({
-        orientation: imgHeight > imgWidth ? 'portrait' : 'landscape',
-        unit: 'mm',
-        format: 'a4',
+        orientation: isLandscape ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [width, height],
+        compress: true,
       })
-
-      setExportProgress(80)
-
-      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
-
-      const filename = state.fileName
-        ? `手写字_${state.fileName.replace(/\.[^/.]+$/, '')}.pdf`
-        : '手写字.pdf'
-
-      pdf.save(filename)
+      for (let i = 0; i < canvases.length; i++) {
+        const dataUrl = canvases[i].toDataURL('image/jpeg', 0.92)
+        if (i > 0) {
+          pdf.addPage([width, height], isLandscape ? 'landscape' : 'portrait')
+        }
+        pdf.addImage(dataUrl, 'JPEG', 0, 0, width, height, undefined, 'FAST')
+        setExportProgress(30 + Math.round(((i + 1) / canvases.length) * 65))
+      }
+      pdf.save('手写字_' + baseName() + '.pdf')
       setExportProgress(100)
     } catch (err) {
       console.error('导出PDF失败:', err)
@@ -105,9 +109,9 @@ export function useExport(canvasRef: React.RefObject<HTMLCanvasElement>): UseExp
       setTimeout(() => {
         setIsExporting(false)
         setExportProgress(0)
-      }, 300)
+      }, 400)
     }
-  }, [canvasRef, state.fileName])
+  }, [renderAllCanvases, pageSize, fileName])
 
   return {
     isExporting,
