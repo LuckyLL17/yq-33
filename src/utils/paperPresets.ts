@@ -1,0 +1,58 @@
+import type { PaperPreset } from '../types';
+
+export const paperPresets: PaperPreset[] = [
+  {
+    id: 'blank',
+    name: '空白信纸',
+    type: 'blank',
+    bgColor: '#FFFFFF',
+    lineColor: '#E5E5E5',
+    lineSpacing: 36,
+    showMargin: false,
+  },
+  {
+    id: 'line',
+    name: '横线信纸',
+    type: 'line',
+    bgColor: '#FBF7F0',
+    lineColor: '#C9B89A',
+    lineSpacing: 36,
+    showMargin: true,
+  },
+  {
+    id: 'grid',
+    name: '方格信纸',
+    type: 'grid',
+    bgColor: '#FDFAF3',
+    lineColor: '#D4C5A9',
+    lineSpacing: 36,
+    showMargin: true,
+  },
+  {
+    id: 'kraft',
+    name: '牛皮信纸',
+    type: 'kraft',
+    bgColor: '#E8DCC4',
+    lineColor: '#B8A482',
+    lineSpacing: 36,
+    showMargin: true,
+  },
+  {
+    id: 'dotted',
+    name: '点阵信纸',
+    type: 'dotted',
+    bgColor: '#F8F6F1',
+    lineColor: '#CFCFCF',
+    lineSpacing: 24,
+    showMargin: false,
+  },
+  {
+    id: 'red-line',
+    name: '红色横线稿纸',
+    type: 'line',
+    bgColor: '#FFFEF5',
+    lineColor: '#E8A0A0',
+    lineSpacing: 36,
+    showMargin: true,
+  },
+];
