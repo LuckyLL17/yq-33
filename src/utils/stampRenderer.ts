@@ -144,8 +144,26 @@ function drawArcText(
   isTop: boolean = true
 ) {
   if (!text) return
+  drawArcTextEllipse(ctx, text, cx, cy, radius, radius, startAngle, endAngle, fontSize, fontFamily, color, isTop)
+}
 
-  const rand = seededRandom(text.length * 997 + radius)
+function drawArcTextEllipse(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+  startAngle: number,
+  endAngle: number,
+  fontSize: number,
+  fontFamily: string,
+  color: string,
+  isTop: boolean = true
+) {
+  if (!text) return
+
+  const rand = seededRandom(text.length * 997 + rx + ry)
   const rgb = hexToRgb(color)
 
   ctx.save()
@@ -160,10 +178,10 @@ function drawArcText(
   for (let i = 0; i < charCount; i++) {
     const ch = text[i]
     const angle = startAngle + step * (i + 0.5)
-    const r = radius + (rand() - 0.5) * 1.5
-    const x = cx + r * Math.cos(angle)
-    const y = cy + r * Math.sin(angle)
-    const rot = angle + (isTop ? Math.PI / 2 : -Math.PI / 2)
+    const jitterR = (rand() - 0.5) * 1.5
+    const x = cx + (rx + jitterR) * Math.cos(angle)
+    const y = cy + (ry + jitterR) * Math.sin(angle)
+    const rot = isTop ? angle + Math.PI / 2 : angle - Math.PI / 2
     const alpha = 0.82 + rand() * 0.18
     const colorVar = 0.92 + rand() * 0.16
 
@@ -333,29 +351,28 @@ export function renderStampToCanvas({ config, canvas }: RenderStampOptions): {
 
   drawBorder(ctx, config.shape, cx, cy, rx, ry, config.borderWidth, config.borderStyle, config.color)
 
-  const textRadius = (config.shape === 'ellipse' ? (rx + ry) / 2 : rx) - config.borderWidth * 2 - 5
+  const textRadiusX = (config.shape === 'ellipse' ? rx : rx) - config.borderWidth * 2 - 5
+  const textRadiusY = (config.shape === 'ellipse' ? ry : ry) - config.borderWidth * 2 - 5
   const topFontSize = config.fontSize
   const centerFontSize = config.shape === 'ellipse'
     ? Math.max(10, config.fontSize * 0.85)
     : Math.max(10, config.fontSize * 0.95)
   const bottomFontSize = Math.max(10, config.fontSize * 0.75)
 
+  const topSpread = Math.PI * 0.42
+
   if (config.topText) {
-    const topStart = Math.PI + (Math.PI * 0.85) / 2
-    const topEnd = Math.PI * 2 - (Math.PI * 0.85) / 2
-    drawArcText(ctx, config.topText, cx, cy, textRadius - topFontSize * 0.2, topStart, topEnd, topFontSize, config.fontFamily, config.color, true)
+    const topStart = Math.PI * 1.5 - topSpread
+    const topEnd = Math.PI * 1.5 + topSpread
+    drawArcTextEllipse(ctx, config.topText, cx, cy, textRadiusX, textRadiusY, topStart, topEnd, topFontSize, config.fontFamily, config.color, true)
   }
 
   if (config.bottomText) {
-    const bottomStart = Math.PI + (Math.PI * 0.75) / 2
-    const bottomEnd = Math.PI * 2 - (Math.PI * 0.75) / 2
-    const bottomTextRadius = textRadius - bottomFontSize * 0.3
-    ctx.save()
-    ctx.translate(cx, cy)
-    ctx.scale(1, -1)
-    ctx.translate(-cx, -cy)
-    drawArcText(ctx, config.bottomText, cx, cy, bottomTextRadius, bottomStart, bottomEnd, bottomFontSize, config.fontFamily, config.color, false)
-    ctx.restore()
+    const bottomSpread = Math.PI * 0.38
+    const bottomStart = Math.PI * 0.5 - bottomSpread
+    const bottomEnd = Math.PI * 0.5 + bottomSpread
+    const bottomRadiusY = textRadiusY - bottomFontSize * 0.5
+    drawArcTextEllipse(ctx, config.bottomText, cx, cy, textRadiusX, bottomRadiusY, bottomStart, bottomEnd, bottomFontSize, config.fontFamily, config.color, false)
   }
 
   const centerAreaSize = (config.shape === 'ellipse' ? ry : rx) * 0.7
