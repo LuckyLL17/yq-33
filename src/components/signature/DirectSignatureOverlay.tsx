@@ -5,14 +5,11 @@ import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { paperPresets } from '@/constants/presets'
 import { getSignatureBounds, extractSignatureDataUrl } from '@/utils/signatureRenderer'
 
-interface DirectSignatureOverlayProps {
-  onClose: () => void
-}
-
 const PAGE_WIDTH = 794
 const PAGE_HEIGHT = 1123
+const DPR = 2
 
-export default function DirectSignatureOverlay({ onClose }: DirectSignatureOverlayProps) {
+export default function DirectSignatureOverlay() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [brushSize, setBrushSize] = useState(3)
@@ -23,6 +20,7 @@ export default function DirectSignatureOverlay({ onClose }: DirectSignatureOverl
   const addSignature = useWorkspaceStore((s) => s.addSignature)
   const addSignaturePlacement = useWorkspaceStore((s) => s.addSignaturePlacement)
   const currentPage = useWorkspaceStore((s) => s.currentPage)
+  const setIsDirectSigning = useWorkspaceStore((s) => s.setIsDirectSigning)
   const { selectedPaperId, paperBgColor, paperLineColor, paperLineSpacing } = useWorkspaceStore()
 
   const getPaperInfo = useCallback(() => {
@@ -43,14 +41,14 @@ export default function DirectSignatureOverlay({ onClose }: DirectSignatureOverl
     const canvas = canvasRef.current
     if (!canvas) return
 
-    canvas.width = PAGE_WIDTH * 2
-    canvas.height = PAGE_HEIGHT * 2
+    canvas.width = PAGE_WIDTH * DPR
+    canvas.height = PAGE_HEIGHT * DPR
     canvas.style.width = `${PAGE_WIDTH}px`
     canvas.style.height = `${PAGE_HEIGHT}px`
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    ctx.scale(2, 2)
+    ctx.scale(DPR, DPR)
 
     ctx.strokeStyle = brushColor
     ctx.lineWidth = brushSize
@@ -64,7 +62,6 @@ export default function DirectSignatureOverlay({ onClose }: DirectSignatureOverl
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
     setHistory((prev) => [...prev.slice(-20), imageData])
   }, [])
@@ -162,15 +159,12 @@ export default function DirectSignatureOverlay({ onClose }: DirectSignatureOverl
   }
 
   const getCenterPoint = (canvas: HTMLCanvasElement): { x: number; y: number } => {
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return { x: PAGE_WIDTH / 2, y: PAGE_HEIGHT / 2 }
-
     const bounds = getSignatureBounds(canvas, false)
     const logicalBounds = {
-      left: bounds.left / 2,
-      top: bounds.top / 2,
-      right: bounds.right / 2,
-      bottom: bounds.bottom / 2,
+      left: bounds.left / DPR,
+      top: bounds.top / DPR,
+      right: bounds.right / DPR,
+      bottom: bounds.bottom / DPR,
     }
     return {
       x: (logicalBounds.left + logicalBounds.right) / 2,
@@ -183,57 +177,53 @@ export default function DirectSignatureOverlay({ onClose }: DirectSignatureOverl
     if (!canvas || !hasContent) return
 
     const bounds = getSignatureBounds(canvas, false)
-    const { dataUrl, width, height } = extractSignatureDataUrl(
-      canvas,
-      bounds,
-      10,
-      false
-    )
+    const { dataUrl, width, height } = extractSignatureDataUrl(canvas, bounds, 10, false)
 
     if (width <= 20 || height <= 20) return
 
     const name = `签名 ${useWorkspaceStore.getState().signatures.length + 1}`
     const pi = getPaperInfo()
-
-    const tempSig = {
-      name,
-      dataUrl,
-      width: width / 2,
-      height: height / 2,
-      bgOpacity: 0,
-      paperId: selectedPaperId,
-      paperBgColor: pi.paperBgColor,
-      paperLineColor: pi.paperLineColor,
-      paperLineSpacing: pi.paperLineSpacing,
-      paperType: pi.paperType,
-    }
-
     const tempId = `sig_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 
     const state = useWorkspaceStore.getState()
-    const newSignatures = [
-      ...state.signatures,
-      { ...tempSig, id: tempId, createdAt: Date.now() },
-    ]
-    useWorkspaceStore.setState({ signatures: newSignatures })
+    useWorkspaceStore.setState({
+      signatures: [
+        ...state.signatures,
+        {
+          name,
+          dataUrl,
+          width: width / DPR,
+          height: height / DPR,
+          bgOpacity: 0,
+          paperId: selectedPaperId,
+          paperBgColor: pi.paperBgColor,
+          paperLineColor: pi.paperLineColor,
+          paperLineSpacing: pi.paperLineSpacing,
+          paperType: pi.paperType,
+          id: tempId,
+          createdAt: Date.now(),
+        },
+      ],
+    })
 
     const center = getCenterPoint(canvas)
-    const placement = {
-      signatureId: tempId,
-      pageIndex: currentPage - 1,
-      x: center.x,
-      y: center.y,
-      scale: 1,
-    }
-
-    const newPlacements = [...state.signaturePlacements, placement]
+    const newState = useWorkspaceStore.getState()
     useWorkspaceStore.setState({
-      signaturePlacements: newPlacements,
+      signaturePlacements: [
+        ...newState.signaturePlacements,
+        {
+          signatureId: tempId,
+          pageIndex: currentPage - 1,
+          x: center.x,
+          y: center.y,
+          scale: 1,
+        },
+      ],
       isPlacingSignature: false,
       selectedSignatureId: null,
     })
 
-    onClose()
+    setIsDirectSigning(false)
   }
 
   const saveToPresets = () => {
@@ -241,12 +231,7 @@ export default function DirectSignatureOverlay({ onClose }: DirectSignatureOverl
     if (!canvas || !hasContent) return
 
     const bounds = getSignatureBounds(canvas, false)
-    const { dataUrl, width, height } = extractSignatureDataUrl(
-      canvas,
-      bounds,
-      10,
-      false
-    )
+    const { dataUrl, width, height } = extractSignatureDataUrl(canvas, bounds, 10, false)
 
     if (width <= 20 || height <= 20) return
 
@@ -256,8 +241,8 @@ export default function DirectSignatureOverlay({ onClose }: DirectSignatureOverl
     addSignature({
       name,
       dataUrl,
-      width: width / 2,
-      height: height / 2,
+      width: width / DPR,
+      height: height / DPR,
       bgOpacity: 0,
       paperId: selectedPaperId,
       paperBgColor: pi.paperBgColor,
@@ -266,159 +251,142 @@ export default function DirectSignatureOverlay({ onClose }: DirectSignatureOverl
       paperType: pi.paperType,
     })
 
-    onClose()
+    setIsDirectSigning(false)
+  }
+
+  const handleClose = () => {
+    setIsDirectSigning(false)
   }
 
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center p-8">
+    <>
       <div
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      <div className="relative flex flex-col gap-3">
-        <div
-          className={cn(
-            'flex items-center justify-between',
-            'px-4 py-2.5 rounded-xl',
-            'bg-white shadow-lg shadow-stone-900/20',
-            'border border-stone-200'
-          )}
-        >
-          <div className="flex items-center gap-4">
-            <h3 className="text-sm font-bold text-stone-700">在信纸上签名</h3>
-            <div className="flex items-center gap-2">
-              <Pen className="w-4 h-4 text-stone-500" />
-              <input
-                type="color"
-                value={brushColor}
-                onChange={(e) => setBrushColor(e.target.value)}
-                className="w-6 h-6 rounded cursor-pointer border border-stone-200"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-stone-500">粗细</span>
-              <input
-                type="range"
-                min="1"
-                max="12"
-                value={brushSize}
-                onChange={(e) => setBrushSize(Number(e.target.value))}
-                className="w-20 accent-amber-600"
-              />
-              <span className="text-xs text-stone-400 w-4">{brushSize}</span>
-            </div>
+        className={cn(
+          'absolute z-20',
+          'top-0 left-0 right-0',
+          'flex items-center justify-center',
+          'px-4 py-2.5',
+          'bg-white/90 backdrop-blur-sm',
+          'border-b border-amber-300',
+          'shadow-md shadow-amber-900/10'
+        )}
+      >
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-100 border border-amber-200">
+            <Pen className="w-3.5 h-3.5 text-amber-600" />
+            <span className="text-xs font-bold text-amber-700">签名模式</span>
           </div>
 
-          <div className="flex items-center gap-1">
-            <button
-              onClick={undo}
-              disabled={history.length === 0}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-medium',
-                'flex items-center gap-1',
-                'bg-stone-100 text-stone-600 hover:bg-stone-200',
-                'disabled:opacity-40 disabled:cursor-not-allowed',
-                'transition-colors'
-              )}
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              撤销
-            </button>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={brushColor}
+              onChange={(e) => setBrushColor(e.target.value)}
+              className="w-6 h-6 rounded cursor-pointer border border-stone-200"
+            />
+          </div>
 
-            <button
-              onClick={clearCanvas}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-medium',
-                'flex items-center gap-1',
-                'bg-stone-100 text-stone-600 hover:bg-stone-200',
-                'transition-colors'
-              )}
-            >
-              <Eraser className="w-3.5 h-3.5" />
-              清空
-            </button>
-
-            <button
-              onClick={saveToPresets}
-              disabled={!hasContent}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-medium',
-                'flex items-center gap-1',
-                'bg-stone-600 text-white hover:bg-stone-700',
-                'disabled:opacity-40 disabled:cursor-not-allowed',
-                'transition-colors'
-              )}
-            >
-              <Save className="w-3.5 h-3.5" />
-              仅保存预设
-            </button>
-
-            <button
-              onClick={saveAndPlace}
-              disabled={!hasContent}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-medium',
-                'flex items-center gap-1',
-                'bg-amber-500 text-white hover:bg-amber-600',
-                'disabled:opacity-40 disabled:cursor-not-allowed',
-                'transition-colors'
-              )}
-            >
-              <Save className="w-3.5 h-3.5" />
-              保存并插入
-            </button>
-
-            <button
-              onClick={onClose}
-              className={cn(
-                'p-1.5 rounded-lg',
-                'text-stone-400 hover:text-stone-600 hover:bg-stone-100',
-                'transition-colors'
-              )}
-            >
-              <X className="w-4 h-4" />
-            </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-stone-500">粗细</span>
+            <input
+              type="range"
+              min="1"
+              max="12"
+              value={brushSize}
+              onChange={(e) => setBrushSize(Number(e.target.value))}
+              className="w-16 accent-amber-600"
+            />
           </div>
         </div>
 
-        <div
-          className={cn(
-            'relative rounded-sm overflow-hidden',
-            'cursor-crosshair touch-none',
-            'shadow-[0_35px_60px_-15px_rgba(0,0,0,0.4)]'
-          )}
-          style={{
-            width: `${PAGE_WIDTH}px`,
-            height: `${PAGE_HEIGHT}px`,
-            boxShadow: `
-              0 1px 1px rgba(0,0,0,0.12),
-              0 2px 2px rgba(0,0,0,0.12),
-              0 4px 4px rgba(0,0,0,0.12),
-              0 8px 8px rgba(0,0,0,0.12),
-              0 16px 16px rgba(0,0,0,0.12),
-              0 32px 32px rgba(0,0,0,0.18)
-            `,
-          }}
-        >
-          <canvas
-            ref={canvasRef}
-            className="absolute inset-0 w-full h-full"
-            onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={stopDrawing}
-            onMouseLeave={stopDrawing}
-            onTouchStart={startDrawing}
-            onTouchMove={draw}
-            onTouchEnd={stopDrawing}
-          />
-        </div>
+        <div className="flex items-center gap-1 ml-auto">
+          <button
+            onClick={undo}
+            disabled={history.length === 0}
+            className={cn(
+              'px-2.5 py-1 rounded-md text-xs font-medium',
+              'flex items-center gap-1',
+              'bg-stone-100 text-stone-600 hover:bg-stone-200',
+              'disabled:opacity-40 disabled:cursor-not-allowed',
+              'transition-colors'
+            )}
+          >
+            <RotateCcw className="w-3 h-3" />
+            撤销
+          </button>
 
-        <p className="text-xs text-white/80 text-center">
-          在信纸上直接书写签名，选择「保存并插入」添加到当前位置，或「仅保存预设」添加到签名库
-        </p>
+          <button
+            onClick={clearCanvas}
+            className={cn(
+              'px-2.5 py-1 rounded-md text-xs font-medium',
+              'flex items-center gap-1',
+              'bg-stone-100 text-stone-600 hover:bg-stone-200',
+              'transition-colors'
+            )}
+          >
+            <Eraser className="w-3 h-3" />
+            清空
+          </button>
+
+          <button
+            onClick={saveToPresets}
+            disabled={!hasContent}
+            className={cn(
+              'px-2.5 py-1 rounded-md text-xs font-medium',
+              'flex items-center gap-1',
+              'bg-stone-600 text-white hover:bg-stone-700',
+              'disabled:opacity-40 disabled:cursor-not-allowed',
+              'transition-colors'
+            )}
+          >
+            <Save className="w-3 h-3" />
+            仅保存预设
+          </button>
+
+          <button
+            onClick={saveAndPlace}
+            disabled={!hasContent}
+            className={cn(
+              'px-3 py-1 rounded-md text-xs font-bold',
+              'flex items-center gap-1',
+              'bg-gradient-to-r from-amber-500 to-orange-500 text-white',
+              'hover:from-amber-600 hover:to-orange-600',
+              'disabled:opacity-40 disabled:cursor-not-allowed',
+              'transition-colors'
+            )}
+          >
+            <Save className="w-3 h-3" />
+            完成签名
+          </button>
+
+          <button
+            onClick={handleClose}
+            className={cn(
+              'p-1 rounded-md ml-1',
+              'text-stone-400 hover:text-stone-600 hover:bg-stone-100',
+              'transition-colors'
+            )}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
-    </div>
+
+      <canvas
+        ref={canvasRef}
+        className={cn(
+          'absolute inset-0 z-10',
+          'w-full h-full',
+          'cursor-crosshair touch-none'
+        )}
+        onMouseDown={startDrawing}
+        onMouseMove={draw}
+        onMouseUp={stopDrawing}
+        onMouseLeave={stopDrawing}
+        onTouchStart={startDrawing}
+        onTouchMove={draw}
+        onTouchEnd={stopDrawing}
+      />
+    </>
   )
 }

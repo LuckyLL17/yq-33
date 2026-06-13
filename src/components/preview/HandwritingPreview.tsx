@@ -144,20 +144,22 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleDirectSign}
-              className={cn(
-                'h-8 px-3 rounded-lg text-xs font-medium',
-                'flex items-center gap-1.5',
-                'bg-gradient-to-r from-amber-500 to-orange-500 text-white',
-                'hover:from-amber-600 hover:to-orange-600',
-                'shadow-sm shadow-amber-500/30',
-                'transition-all duration-200'
-              )}
-            >
-              <PenTool className="w-3.5 h-3.5" />
-              在信纸上签名
-            </button>
+            {!isDirectSigning && (
+              <button
+                onClick={handleDirectSign}
+                className={cn(
+                  'h-8 px-3 rounded-lg text-xs font-medium',
+                  'flex items-center gap-1.5',
+                  'bg-gradient-to-r from-amber-500 to-orange-500 text-white',
+                  'hover:from-amber-600 hover:to-orange-600',
+                  'shadow-sm shadow-amber-500/30',
+                  'transition-all duration-200'
+                )}
+              >
+                <PenTool className="w-3.5 h-3.5" />
+                在信纸上签名
+              </button>
+            )}
 
             {isPlacingSignature && selectedSignature ? (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-100 border border-amber-300">
@@ -171,7 +173,7 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-            ) : (
+            ) : !isDirectSigning ? (
               <div
                 className={cn(
                   'flex items-center gap-1',
@@ -219,7 +221,7 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -255,19 +257,23 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
               <div
                 className={cn(
                   'relative rounded-sm overflow-hidden',
-                  'shadow-[0_35px_60px_-15px_rgba(0,0,0,0.4)]',
-                  'shadow-stone-700/30',
                   isPlacingSignature && 'cursor-crosshair'
                 )}
                 style={{
-                  boxShadow: `
-                    0 1px 1px rgba(0,0,0,0.12),
-                    0 2px 2px rgba(0,0,0,0.12),
-                    0 4px 4px rgba(0,0,0,0.12),
-                    0 8px 8px rgba(0,0,0,0.12),
-                    0 16px 16px rgba(0,0,0,0.12),
-                    0 32px 32px rgba(0,0,0,0.18)
-                  `,
+                  boxShadow: isDirectSigning
+                    ? `0 0 0 2px #f59e0b, 0 0 20px rgba(245, 158, 11, 0.3),
+                       0 1px 1px rgba(0,0,0,0.12),
+                       0 4px 4px rgba(0,0,0,0.12),
+                       0 16px 16px rgba(0,0,0,0.12),
+                       0 32px 32px rgba(0,0,0,0.18)`
+                    : `
+                       0 1px 1px rgba(0,0,0,0.12),
+                       0 2px 2px rgba(0,0,0,0.12),
+                       0 4px 4px rgba(0,0,0,0.12),
+                       0 8px 8px rgba(0,0,0,0.12),
+                       0 16px 16px rgba(0,0,0,0.12),
+                       0 32px 32px rgba(0,0,0,0.18)
+                     `,
                 }}
               >
                 <canvas
@@ -275,13 +281,13 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
                   className="block"
                   onClick={handleCanvasClick}
                 />
+
+                {isDirectSigning && (
+                  <DirectSignatureOverlay />
+                )}
               </div>
             </div>
           </div>
-
-          {isDirectSigning && (
-            <DirectSignatureOverlay onClose={() => setIsDirectSigning(false)} />
-          )}
         </div>
       </div>
     )
