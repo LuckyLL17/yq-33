@@ -1,8 +1,9 @@
 import { forwardRef, useCallback, useRef } from 'react'
-import { ZoomOut, ZoomIn, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { ZoomOut, ZoomIn, ChevronLeft, ChevronRight, X, PenTool } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { useHandwritingRender } from '@/hooks/useHandwritingRender'
+import DirectSignatureOverlay from '@/components/signature/DirectSignatureOverlay'
 
 interface HandwritingPreviewProps {}
 
@@ -21,6 +22,8 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
       addSignaturePlacement,
       setIsPlacingSignature,
       setSelectedSignatureId,
+      isDirectSigning,
+      setIsDirectSigning,
     } = useWorkspaceStore()
     const { canvasRef, pageSize } = useHandwritingRender({
       externalCanvasRef: ref as React.RefObject<HTMLCanvasElement>,
@@ -77,6 +80,10 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
       setIsPlacingSignature(false)
       setSelectedSignatureId(null)
     }, [setIsPlacingSignature, setSelectedSignatureId])
+
+    const handleDirectSign = useCallback(() => {
+      setIsDirectSigning(true)
+    }, [setIsDirectSigning])
 
     return (
       <div className={cn('flex-1 min-h-0 flex flex-col', 'p-4 gap-3')}>
@@ -136,67 +143,84 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
             </button>
           </div>
 
-          {isPlacingSignature && selectedSignature ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-100 border border-amber-300">
-              <span className="text-xs font-medium text-amber-700">
-                点击文档放置签名
-              </span>
-              <button
-                onClick={cancelPlacement}
-                className="p-0.5 rounded text-amber-600 hover:bg-amber-200 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <div
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDirectSign}
               className={cn(
-                'flex items-center gap-1',
-                'px-2 py-1 rounded-lg',
-                'bg-stone-50 border border-stone-200'
+                'h-8 px-3 rounded-lg text-xs font-medium',
+                'flex items-center gap-1.5',
+                'bg-gradient-to-r from-amber-500 to-orange-500 text-white',
+                'hover:from-amber-600 hover:to-orange-600',
+                'shadow-sm shadow-amber-500/30',
+                'transition-all duration-200'
               )}
             >
-              <button
-                onClick={handlePrevPage}
-                disabled={currentPage <= 1}
-                className={cn(
-                  'w-7 h-7 rounded-md',
-                  'flex items-center justify-center',
-                  'text-stone-600 hover:text-amber-700',
-                  'hover:bg-white',
-                  'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent',
-                  'transition-all duration-200'
-                )}
-                title="上一页"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <div className="flex items-center gap-1 px-2">
-                <span className="text-xs font-bold text-amber-700 min-w-[20px] text-center">
-                  {currentPage}
+              <PenTool className="w-3.5 h-3.5" />
+              在信纸上签名
+            </button>
+
+            {isPlacingSignature && selectedSignature ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-100 border border-amber-300">
+                <span className="text-xs font-medium text-amber-700">
+                  点击文档放置签名
                 </span>
-                <span className="text-xs text-stone-400">/</span>
-                <span className="text-xs font-medium text-stone-600 min-w-[20px] text-center">
-                  {totalPages}
-                </span>
+                <button
+                  onClick={cancelPlacement}
+                  className="p-0.5 rounded text-amber-600 hover:bg-amber-200 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <button
-                onClick={handleNextPage}
-                disabled={currentPage >= totalPages}
+            ) : (
+              <div
                 className={cn(
-                  'w-7 h-7 rounded-md',
-                  'flex items-center justify-center',
-                  'text-stone-600 hover:text-amber-700',
-                  'hover:bg-white',
-                  'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent',
-                  'transition-all duration-200'
+                  'flex items-center gap-1',
+                  'px-2 py-1 rounded-lg',
+                  'bg-stone-50 border border-stone-200'
                 )}
-                title="下一页"
               >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
+                <button
+                  onClick={handlePrevPage}
+                  disabled={currentPage <= 1}
+                  className={cn(
+                    'w-7 h-7 rounded-md',
+                    'flex items-center justify-center',
+                    'text-stone-600 hover:text-amber-700',
+                    'hover:bg-white',
+                    'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent',
+                    'transition-all duration-200'
+                  )}
+                  title="上一页"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <div className="flex items-center gap-1 px-2">
+                  <span className="text-xs font-bold text-amber-700 min-w-[20px] text-center">
+                    {currentPage}
+                  </span>
+                  <span className="text-xs text-stone-400">/</span>
+                  <span className="text-xs font-medium text-stone-600 min-w-[20px] text-center">
+                    {totalPages}
+                  </span>
+                </div>
+                <button
+                  onClick={handleNextPage}
+                  disabled={currentPage >= totalPages}
+                  className={cn(
+                    'w-7 h-7 rounded-md',
+                    'flex items-center justify-center',
+                    'text-stone-600 hover:text-amber-700',
+                    'hover:bg-white',
+                    'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent',
+                    'transition-all duration-200'
+                  )}
+                  title="下一页"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div
@@ -254,6 +278,10 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
               </div>
             </div>
           </div>
+
+          {isDirectSigning && (
+            <DirectSignatureOverlay onClose={() => setIsDirectSigning(false)} />
+          )}
         </div>
       </div>
     )

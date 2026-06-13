@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { paperPresets } from '@/constants/presets'
 import type { PaperType } from '@/types'
+import { getSignatureBounds, extractSignatureDataUrl } from '@/utils/signatureRenderer'
 
 interface SignatureCanvasProps {
   onClose?: () => void
@@ -239,87 +240,20 @@ export default function SignatureCanvas({ onClose }: SignatureCanvasProps) {
     setHasContent(hasPixels)
   }
 
-  const getSignatureBounds = (canvas: HTMLCanvasElement) => {
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return { left: 0, top: 0, right: 0, bottom: 0 }
-
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-    const data = imageData.data
-
-    let left = canvas.width
-    let top = canvas.height
-    let right = 0
-    let bottom = 0
-
-    const bgR = bgMode === 'white' ? 255 : 0
-    const bgG = bgMode === 'white' ? 255 : 0
-    const bgB = bgMode === 'white' ? 255 : 0
-
-    for (let y = 0; y < canvas.height; y++) {
-      for (let x = 0; x < canvas.width; x++) {
-        const idx = (y * canvas.width + x) * 4
-        const r = data[idx]
-        const g = data[idx + 1]
-        const b = data[idx + 2]
-        const a = data[idx + 3]
-
-        const isNotBg = Math.abs(r - bgR) > 30 || Math.abs(g - bgG) > 30 || Math.abs(b - bgB) > 30
-
-        if (a > 50 && isNotBg) {
-          if (x < left) left = x
-          if (x > right) right = x
-          if (y < top) top = y
-          if (y > bottom) bottom = y
-        }
-      }
-    }
-
-    if (right === 0) {
-      return { left: 0, top: 0, right: canvas.width, bottom: canvas.height }
-    }
-
-    return { left, top, right, bottom }
-  }
-
   const saveSignature = () => {
     const canvas = canvasRef.current
     if (!canvas || !hasContent) return
 
-    const { left, top, right, bottom } = getSignatureBounds(canvas)
-    const width = right - left + 20
-    const height = bottom - top + 20
+    const bounds = getSignatureBounds(canvas, bgMode === 'white')
+    const { dataUrl, width, height } = extractSignatureDataUrl(
+      canvas,
+      bounds,
+      10,
+      bgMode === 'white'
+    )
 
     if (width <= 20 || height <= 20) return
 
-    const tempCanvas = document.createElement('canvas')
-    tempCanvas.width = width
-    tempCanvas.height = height
-    const tempCtx = tempCanvas.getContext('2d')
-    if (!tempCtx) return
-
-    tempCtx.clearRect(0, 0, width, height)
-    tempCtx.drawImage(canvas, left - 10, top - 10, width, height, 0, 0, width, height)
-
-    const imageData = tempCtx.getImageData(0, 0, width, height)
-    const data = imageData.data
-
-    const bgR = bgMode === 'white' ? 255 : 0
-    const bgG = bgMode === 'white' ? 255 : 0
-    const bgB = bgMode === 'white' ? 255 : 0
-
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i]
-      const g = data[i + 1]
-      const b = data[i + 2]
-      const isBg = Math.abs(r - bgR) <= 30 && Math.abs(g - bgG) <= 30 && Math.abs(b - bgB) <= 30
-      if (isBg) {
-        data[i + 3] = 0
-      }
-    }
-
-    tempCtx.putImageData(imageData, 0, 0)
-
-    const dataUrl = tempCanvas.toDataURL('image/png')
     const name = `签名 ${useWorkspaceStore.getState().signatures.length + 1}`
     const ps = getPaperState()
 

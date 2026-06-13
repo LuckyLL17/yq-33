@@ -67,6 +67,7 @@ interface WorkspaceState {
   signaturePlacements: SignaturePlacement[]
   selectedSignatureId: string | null
   isPlacingSignature: boolean
+  isDirectSigning: boolean
 
   setText: (text: string, fileName?: string) => void
   clearText: () => void
@@ -97,6 +98,7 @@ interface WorkspaceState {
   updateSignaturePlacement: (index: number, placement: Partial<SignaturePlacement>) => void
   deleteSignaturePlacement: (index: number) => void
   setIsPlacingSignature: (placing: boolean) => void
+  setIsDirectSigning: (signing: boolean) => void
 }
 
 const defaultState = {
@@ -126,6 +128,7 @@ const defaultState = {
   signaturePlacements: [] as SignaturePlacement[],
   selectedSignatureId: null as string | null,
   isPlacingSignature: false,
+  isDirectSigning: false,
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
@@ -274,4 +277,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
 
   setIsPlacingSignature: (placing) =>
     set({ isPlacingSignature: placing }),
+
+  setIsDirectSigning: (signing) =>
+    set({ isDirectSigning: signing }),
 }))
