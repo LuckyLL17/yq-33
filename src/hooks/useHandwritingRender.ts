@@ -4,6 +4,7 @@ import { fontPresets, paperPresets } from '@/constants/presets'
 import type { PaperType } from '@/types'
 import { drawSignaturesForPage, loadSignatureImages } from '@/utils/signatureRenderer'
 import { drawStampsForPage, loadStampImages } from '@/utils/stampRenderer'
+import { drawAnnotationsForPage } from '@/utils/annotationRenderer'
 
 const PAGE_WIDTH = 794
 const PAGE_HEIGHT = 1123
@@ -463,7 +464,7 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
     setTotalPages(totalPages)
   }, [totalPages, setTotalPages])
 
-  const { signatures, signaturePlacements, stamps, stampPlacements } = useWorkspaceStore()
+  const { signatures, signaturePlacements, stamps, stampPlacements, annotations } = useWorkspaceStore()
   const [signatureImages, setSignatureImages] = useState<Record<string, HTMLImageElement>>({})
   const [stampImages, setStampImages] = useState<Record<string, HTMLImageElement>>({})
 
@@ -495,6 +496,14 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
     })
   }, [stamps, stampPlacements, stampImages])
 
+  const drawAnnotations = useCallback((ctx: CanvasRenderingContext2D, pageIdx: number) => {
+    drawAnnotationsForPage({
+      ctx,
+      pageIdx,
+      annotations,
+    })
+  }, [annotations])
+
   const renderToCanvas = useCallback((canvas: HTMLCanvasElement, pageIdx: number) => {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
@@ -511,7 +520,8 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
     drawHandwrittenPage(ctx, pages[safeIdx] || [], renderState, safeIdx)
     drawSignatures(ctx, safeIdx)
     drawStamps(ctx, safeIdx)
-  }, [rawText, renderState, computePages, drawSignatures, drawStamps])
+    drawAnnotations(ctx, safeIdx)
+  }, [rawText, renderState, computePages, drawSignatures, drawStamps, drawAnnotations])
 
   const renderAllCanvases = useCallback(async (): Promise<HTMLCanvasElement[]> => {
     const pages = computePages(rawText || ' ', renderState)
@@ -545,10 +555,16 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
         stampImages: sImages,
       })
 
+      drawAnnotationsForPage({
+        ctx,
+        pageIdx: i,
+        annotations,
+      })
+
       canvases.push(c)
     }
     return canvases
-  }, [rawText, renderState, computePages, signatures, signaturePlacements, stamps, stampPlacements])
+  }, [rawText, renderState, computePages, signatures, signaturePlacements, stamps, stampPlacements, annotations])
 
   useEffect(() => {
     if (!canvasRef.current) return

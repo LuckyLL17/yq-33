@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { Type, StickyNote, LayoutGrid, PenTool, Stamp } from 'lucide-react'
+import { Type, StickyNote, LayoutGrid, PenTool, Stamp, ListPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import Header from '@/components/layout/Header'
@@ -11,6 +11,7 @@ import PaperSettings from '@/components/settings/PaperSettings'
 import LayoutSettings from '@/components/settings/LayoutSettings'
 import SignaturePanel from '@/components/signature/SignaturePanel'
 import StampPanel from '@/components/signature/StampPanel'
+import AnnotationPanel from '@/components/annotation/AnnotationPanel'
 import HandwritingPreview from '@/components/preview/HandwritingPreview'
 import ExportActions from '@/components/export/ExportActions'
 
@@ -40,6 +41,11 @@ const tabs = [
     label: '印章',
     icon: Stamp,
   },
+  {
+    id: 'annotation' as const,
+    label: '批注',
+    icon: ListPlus,
+  },
 ]
 
 export default function Workbench() {
@@ -58,6 +64,8 @@ export default function Workbench() {
         return <SignaturePanel />
       case 'stamp':
         return <StampPanel />
+      case 'annotation':
+        return <AnnotationPanel />
       default:
         return <FontSettings />
     }

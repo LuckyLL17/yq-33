@@ -1,9 +1,10 @@
 import { forwardRef, useCallback, useRef } from 'react'
-import { ZoomOut, ZoomIn, ChevronLeft, ChevronRight, X, PenTool } from 'lucide-react'
+import { ZoomOut, ZoomIn, ChevronLeft, ChevronRight, X, PenTool, ListPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { useHandwritingRender } from '@/hooks/useHandwritingRender'
 import DirectSignatureOverlay from '@/components/signature/DirectSignatureOverlay'
+import AnnotationOverlay from '@/components/annotation/AnnotationOverlay'
 
 interface HandwritingPreviewProps {}
 
@@ -30,6 +31,8 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
       addStampPlacement,
       setIsPlacingStamp,
       setSelectedStampId,
+      isAnnotating,
+      setIsAnnotating,
     } = useWorkspaceStore()
     const { canvasRef, pageSize } = useHandwritingRender({
       externalCanvasRef: ref as React.RefObject<HTMLCanvasElement>,
@@ -115,6 +118,10 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
       setIsDirectSigning(true)
     }, [setIsDirectSigning])
 
+    const handleStartAnnotation = useCallback(() => {
+      setIsAnnotating(true)
+    }, [setIsAnnotating])
+
     return (
       <div className={cn('flex-1 min-h-0 flex flex-col', 'p-4 gap-3')}>
         <div
@@ -174,7 +181,24 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
           </div>
 
           <div className="flex items-center gap-2">
-            {!isDirectSigning && (
+            {!isDirectSigning && !isAnnotating && (
+              <button
+                onClick={handleStartAnnotation}
+                className={cn(
+                  'h-8 px-3 rounded-lg text-xs font-medium',
+                  'flex items-center gap-1.5',
+                  'bg-gradient-to-r from-rose-500 to-pink-500 text-white',
+                  'hover:from-rose-600 hover:to-pink-600',
+                  'shadow-sm shadow-rose-500/30',
+                  'transition-all duration-200'
+                )}
+              >
+                <ListPlus className="w-3.5 h-3.5" />
+                添加批注
+              </button>
+            )}
+
+            {!isDirectSigning && !isAnnotating && (
               <button
                 onClick={handleDirectSign}
                 className={cn(
@@ -296,6 +320,12 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
                        0 4px 4px rgba(0,0,0,0.12),
                        0 16px 16px rgba(0,0,0,0.12),
                        0 32px 32px rgba(0,0,0,0.18)`
+                    : isAnnotating
+                    ? `0 0 0 2px #f43f5e, 0 0 20px rgba(244, 63, 94, 0.3),
+                       0 1px 1px rgba(0,0,0,0.12),
+                       0 4px 4px rgba(0,0,0,0.12),
+                       0 16px 16px rgba(0,0,0,0.12),
+                       0 32px 32px rgba(0,0,0,0.18)`
                     : `
                        0 1px 1px rgba(0,0,0,0.12),
                        0 2px 2px rgba(0,0,0,0.12),
@@ -314,6 +344,10 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
 
                 {isDirectSigning && (
                   <DirectSignatureOverlay />
+                )}
+
+                {isAnnotating && (
+                  <AnnotationOverlay />
                 )}
               </div>
             </div>

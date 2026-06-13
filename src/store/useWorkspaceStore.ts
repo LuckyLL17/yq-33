@@ -43,6 +43,70 @@ interface SignaturePlacement {
 export type StampShape = 'circle' | 'square' | 'ellipse'
 export type StampBorderStyle = 'solid' | 'double' | 'dashed' | 'none'
 
+export type AnnotationTool = 'pen' | 'highlighter' | 'circle' | 'rect' | 'line' | 'underline' | 'wavy' | 'arrow' | 'text' | 'eraser'
+export type AnnotationItemType = 'path' | 'highlight' | 'circle' | 'rect' | 'line' | 'underline' | 'wavy' | 'arrow' | 'text'
+
+export interface AnnotationStyle {
+  color: string
+  strokeWidth: number
+  fillColor?: string
+  opacity: number
+  fontFamily?: string
+  fontSize?: number
+}
+
+export interface BaseAnnotation {
+  id: string
+  type: AnnotationItemType
+  pageIndex: number
+  style: AnnotationStyle
+  createdAt: number
+}
+
+export interface PathAnnotation extends BaseAnnotation {
+  type: 'path' | 'highlight'
+  points: { x: number; y: number }[]
+}
+
+export interface ShapeAnnotation extends BaseAnnotation {
+  type: 'circle' | 'rect'
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export interface LineAnnotation extends BaseAnnotation {
+  type: 'line' | 'arrow'
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+}
+
+export interface UnderlineAnnotation extends BaseAnnotation {
+  type: 'underline' | 'wavy'
+  x: number
+  y: number
+  width: number
+}
+
+export interface TextAnnotation extends BaseAnnotation {
+  type: 'text'
+  x: number
+  y: number
+  text: string
+}
+
+export type Annotation = PathAnnotation | ShapeAnnotation | LineAnnotation | UnderlineAnnotation | TextAnnotation
+
+export interface AnnotationPreset {
+  id: string
+  name: string
+  tool: AnnotationTool
+  style: AnnotationStyle
+}
+
 export interface Stamp {
   id: string
   name: string
@@ -82,7 +146,7 @@ export interface StampPlacement {
 interface WorkspaceState {
   rawText: string
   fileName: string
-  activeTab: 'font' | 'paper' | 'layout' | 'signature' | 'stamp'
+  activeTab: 'font' | 'paper' | 'layout' | 'signature' | 'stamp' | 'annotation'
   selectedFontId: string
   fontSize: number
   inkColor: string
@@ -111,10 +175,16 @@ interface WorkspaceState {
   stampPlacements: StampPlacement[]
   selectedStampId: string | null
   isPlacingStamp: boolean
+  annotations: Annotation[]
+  selectedAnnotationId: string | null
+  isAnnotating: boolean
+  activeAnnotationTool: AnnotationTool
+  annotationStyle: AnnotationStyle
+  annotationPresets: AnnotationPreset[]
 
   setText: (text: string, fileName?: string) => void
   clearText: () => void
-  setActiveTab: (tab: 'font' | 'paper' | 'layout' | 'signature' | 'stamp') => void
+  setActiveTab: (tab: 'font' | 'paper' | 'layout' | 'signature' | 'stamp' | 'annotation') => void
   setSelectedFontId: (id: string) => void
   setFontSize: (size: number) => void
   setInkColor: (color: string) => void
@@ -151,6 +221,18 @@ interface WorkspaceState {
   updateStampPlacement: (index: number, placement: Partial<StampPlacement>) => void
   deleteStampPlacement: (index: number) => void
   setIsPlacingStamp: (placing: boolean) => void
+  addAnnotation: (annotation: any) => void
+  updateAnnotation: (id: string, updates: Partial<Annotation>) => void
+  deleteAnnotation: (id: string) => void
+  clearPageAnnotations: (pageIndex: number) => void
+  clearAllAnnotations: () => void
+  setSelectedAnnotationId: (id: string | null) => void
+  setIsAnnotating: (annotating: boolean) => void
+  setActiveAnnotationTool: (tool: AnnotationTool) => void
+  setAnnotationStyle: (style: Partial<AnnotationStyle>) => void
+  addAnnotationPreset: (preset: Omit<AnnotationPreset, 'id'>) => void
+  deleteAnnotationPreset: (id: string) => void
+  loadAnnotations: (annotations: Annotation[]) => void
 }
 
 const defaultState = {
@@ -185,6 +267,55 @@ const defaultState = {
   stampPlacements: [] as StampPlacement[],
   selectedStampId: null as string | null,
   isPlacingStamp: false,
+  annotations: [] as Annotation[],
+  selectedAnnotationId: null as string | null,
+  isAnnotating: false,
+  activeAnnotationTool: 'pen' as AnnotationTool,
+  annotationStyle: {
+    color: '#e53935',
+    strokeWidth: 2,
+    opacity: 1,
+    fontSize: 20,
+    fontFamily: '"Ma Shan Zheng", "KaiTi", cursive, serif',
+  } as AnnotationStyle,
+  annotationPresets: [
+    {
+      id: 'preset_red_pen',
+      name: '红笔批注',
+      tool: 'pen',
+      style: { color: '#e53935', strokeWidth: 2, opacity: 1 },
+    },
+    {
+      id: 'preset_blue_pen',
+      name: '蓝笔批注',
+      tool: 'pen',
+      style: { color: '#1e88e5', strokeWidth: 2, opacity: 1 },
+    },
+    {
+      id: 'preset_yellow_highlight',
+      name: '黄色荧光',
+      tool: 'highlighter',
+      style: { color: '#ffeb3b', strokeWidth: 14, opacity: 0.5 },
+    },
+    {
+      id: 'preset_green_highlight',
+      name: '绿色荧光',
+      tool: 'highlighter',
+      style: { color: '#81c784', strokeWidth: 14, opacity: 0.5 },
+    },
+    {
+      id: 'preset_red_circle',
+      name: '红圈重点',
+      tool: 'circle',
+      style: { color: '#e53935', strokeWidth: 2.5, opacity: 1 },
+    },
+    {
+      id: 'preset_red_underline',
+      name: '红色下划线',
+      tool: 'underline',
+      style: { color: '#e53935', strokeWidth: 2, opacity: 1 },
+    },
+  ] as AnnotationPreset[],
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
@@ -395,4 +526,70 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
 
   setIsPlacingStamp: (placing) =>
     set({ isPlacingStamp: placing }),
+
+  addAnnotation: (annotation) =>
+    set((state) => ({
+      annotations: [
+        ...state.annotations,
+        {
+          ...annotation,
+          id: `anno_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          createdAt: Date.now(),
+        } as Annotation,
+      ],
+    })),
+
+  updateAnnotation: (id, updates) =>
+    set((state) => ({
+      annotations: state.annotations.map((a) =>
+        a.id === id ? ({ ...a, ...updates } as Annotation) : a
+      ),
+    })),
+
+  deleteAnnotation: (id) =>
+    set((state) => ({
+      annotations: state.annotations.filter((a) => a.id !== id),
+      selectedAnnotationId: state.selectedAnnotationId === id ? null : state.selectedAnnotationId,
+    })),
+
+  clearPageAnnotations: (pageIndex) =>
+    set((state) => ({
+      annotations: state.annotations.filter((a) => a.pageIndex !== pageIndex),
+    })),
+
+  clearAllAnnotations: () =>
+    set({ annotations: [], selectedAnnotationId: null }),
+
+  setSelectedAnnotationId: (id) =>
+    set({ selectedAnnotationId: id }),
+
+  setIsAnnotating: (annotating) =>
+    set({ isAnnotating: annotating }),
+
+  setActiveAnnotationTool: (tool) =>
+    set({ activeAnnotationTool: tool }),
+
+  setAnnotationStyle: (style) =>
+    set((state) => ({
+      annotationStyle: { ...state.annotationStyle, ...style },
+    })),
+
+  addAnnotationPreset: (preset) =>
+    set((state) => ({
+      annotationPresets: [
+        ...state.annotationPresets,
+        {
+          ...preset,
+          id: `apreset_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        },
+      ],
+    })),
+
+  deleteAnnotationPreset: (id) =>
+    set((state) => ({
+      annotationPresets: state.annotationPresets.filter((p) => p.id !== id),
+    })),
+
+  loadAnnotations: (annotations) =>
+    set({ annotations }),
 }))
