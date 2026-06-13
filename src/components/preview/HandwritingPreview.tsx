@@ -1,10 +1,11 @@
 import { forwardRef, useCallback, useRef } from 'react'
-import { ZoomOut, ZoomIn, ChevronLeft, ChevronRight, X, PenTool, ListPlus } from 'lucide-react'
+import { ZoomOut, ZoomIn, ChevronLeft, ChevronRight, X, PenTool, ListPlus, Layers, Wand2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { useHandwritingRender } from '@/hooks/useHandwritingRender'
 import DirectSignatureOverlay from '@/components/signature/DirectSignatureOverlay'
 import AnnotationOverlay from '@/components/annotation/AnnotationOverlay'
+import DecorationOverlay from '@/components/decoration/DecorationOverlay'
 
 interface HandwritingPreviewProps {}
 
@@ -33,6 +34,15 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
       setSelectedStampId,
       isAnnotating,
       setIsAnnotating,
+      isPlacingDecoration,
+      selectedDecorationId,
+      setIsPlacingDecoration,
+      setSelectedDecorationId,
+      decorationCategory,
+      setDecorationCategory,
+      activeFilter,
+      setActiveTab,
+      decorationPlacements,
     } = useWorkspaceStore()
     const { canvasRef, pageSize } = useHandwritingRender({
       externalCanvasRef: ref as React.RefObject<HTMLCanvasElement>,
@@ -112,7 +122,9 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
       setSelectedSignatureId(null)
       setIsPlacingStamp(false)
       setSelectedStampId(null)
-    }, [setIsPlacingSignature, setSelectedSignatureId, setIsPlacingStamp, setSelectedStampId])
+      setIsPlacingDecoration(false)
+      setSelectedDecorationId(null)
+    }, [setIsPlacingSignature, setSelectedSignatureId, setIsPlacingStamp, setSelectedStampId, setIsPlacingDecoration, setSelectedDecorationId])
 
     const handleDirectSign = useCallback(() => {
       setIsPlacingSignature(false)
@@ -120,8 +132,10 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
       setIsPlacingStamp(false)
       setSelectedStampId(null)
       setIsAnnotating(false)
+      setIsPlacingDecoration(false)
+      setSelectedDecorationId(null)
       setIsDirectSigning(true)
-    }, [setIsDirectSigning, setIsPlacingSignature, setSelectedSignatureId, setIsPlacingStamp, setSelectedStampId, setIsAnnotating])
+    }, [setIsDirectSigning, setIsPlacingSignature, setSelectedSignatureId, setIsPlacingStamp, setSelectedStampId, setIsAnnotating, setIsPlacingDecoration, setSelectedDecorationId])
 
     const handleStartAnnotation = useCallback(() => {
       setIsPlacingSignature(false)
@@ -129,8 +143,24 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
       setIsPlacingStamp(false)
       setSelectedStampId(null)
       setIsDirectSigning(false)
+      setIsPlacingDecoration(false)
+      setSelectedDecorationId(null)
       setIsAnnotating(true)
-    }, [setIsAnnotating, setIsPlacingSignature, setSelectedSignatureId, setIsPlacingStamp, setSelectedStampId, setIsDirectSigning])
+    }, [setIsAnnotating, setIsPlacingSignature, setSelectedSignatureId, setIsPlacingStamp, setSelectedStampId, setIsDirectSigning, setIsPlacingDecoration, setSelectedDecorationId])
+
+    const handleStartDecoration = useCallback(() => {
+      setIsPlacingSignature(false)
+      setSelectedSignatureId(null)
+      setIsPlacingStamp(false)
+      setSelectedStampId(null)
+      setIsDirectSigning(false)
+      setIsAnnotating(false)
+      setActiveTab('decoration')
+    }, [setIsPlacingSignature, setSelectedSignatureId, setIsPlacingStamp, setSelectedStampId, setIsDirectSigning, setIsAnnotating, setActiveTab])
+
+    const handleFilterShortcut = useCallback(() => {
+      setActiveTab('filter')
+    }, [setActiveTab])
 
     return (
       <div className={cn('flex-1 min-h-0 flex flex-col', 'p-4 gap-3')}>
@@ -193,6 +223,40 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
           <div className="flex items-center gap-2">
             {!isDirectSigning && !isAnnotating && (
               <button
+                onClick={handleFilterShortcut}
+                className={cn(
+                  'h-8 px-3 rounded-lg text-xs font-medium',
+                  'flex items-center gap-1.5',
+                  activeFilter !== 'none'
+                    ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-sm shadow-violet-500/30'
+                    : 'bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100',
+                  'transition-all duration-200'
+                )}
+              >
+                <Wand2 className="w-3.5 h-3.5" />
+                {activeFilter !== 'none' ? '滤镜中' : '滤镜效果'}
+              </button>
+            )}
+
+            {!isDirectSigning && !isAnnotating && (
+              <button
+                onClick={handleStartDecoration}
+                className={cn(
+                  'h-8 px-3 rounded-lg text-xs font-medium',
+                  'flex items-center gap-1.5',
+                  'bg-gradient-to-r from-pink-500 to-rose-500 text-white',
+                  'hover:from-pink-600 hover:to-rose-600',
+                  'shadow-sm shadow-pink-500/30',
+                  'transition-all duration-200'
+                )}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                装饰信纸
+              </button>
+            )}
+
+            {!isDirectSigning && !isAnnotating && (
+              <button
                 onClick={handleStartAnnotation}
                 className={cn(
                   'h-8 px-3 rounded-lg text-xs font-medium',
@@ -225,10 +289,14 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
               </button>
             )}
 
-            {(isPlacingSignature && selectedSignature) || (isPlacingStamp && selectedStamp) ? (
+            {(isPlacingSignature && selectedSignature) || (isPlacingStamp && selectedStamp) || (isPlacingDecoration && selectedDecorationId) ? (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-100 border border-amber-300">
                 <span className="text-xs font-medium text-amber-700">
-                  {(isPlacingStamp && selectedStamp) ? '点击文档放置印章' : '点击文档放置签名'}
+                  {(isPlacingStamp && selectedStamp)
+                    ? '点击文档放置印章'
+                    : (isPlacingDecoration && selectedDecorationId)
+                      ? '点击文档放置装饰'
+                      : '点击文档放置签名'}
                 </span>
                 <button
                   onClick={cancelPlacement}
@@ -321,7 +389,7 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
               <div
                 className={cn(
                   'relative rounded-sm overflow-hidden',
-                  (isPlacingSignature || isPlacingStamp) && 'cursor-crosshair'
+                  (isPlacingSignature || isPlacingStamp || isPlacingDecoration) && 'cursor-crosshair'
                 )}
                 style={{
                   boxShadow: isDirectSigning
@@ -332,6 +400,12 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
                        0 32px 32px rgba(0,0,0,0.18)`
                     : isAnnotating
                     ? `0 0 0 2px #f43f5e, 0 0 20px rgba(244, 63, 94, 0.3),
+                       0 1px 1px rgba(0,0,0,0.12),
+                       0 4px 4px rgba(0,0,0,0.12),
+                       0 16px 16px rgba(0,0,0,0.12),
+                       0 32px 32px rgba(0,0,0,0.18)`
+                    : decorationPlacements.length > 0
+                    ? `0 0 0 2px #ec4899, 0 0 20px rgba(236, 72, 153, 0.3),
                        0 1px 1px rgba(0,0,0,0.12),
                        0 4px 4px rgba(0,0,0,0.12),
                        0 16px 16px rgba(0,0,0,0.12),
@@ -358,6 +432,10 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
 
                 {isAnnotating && (
                   <AnnotationOverlay />
+                )}
+
+                {decorationPlacements.length > 0 && !isDirectSigning && !isAnnotating && (
+                  <DecorationOverlay />
                 )}
               </div>
             </div>

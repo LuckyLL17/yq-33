@@ -1,4 +1,11 @@
 import { create } from 'zustand'
+import type {
+  DecorationCategory,
+  DecorationPreset,
+  DecorationPlacement,
+  FilterType,
+  FilterPreset,
+} from '@/types'
 
 export interface FontPreset {
   id: string
@@ -146,7 +153,7 @@ export interface StampPlacement {
 interface WorkspaceState {
   rawText: string
   fileName: string
-  activeTab: 'font' | 'paper' | 'layout' | 'signature' | 'stamp' | 'annotation'
+  activeTab: 'font' | 'paper' | 'layout' | 'signature' | 'stamp' | 'annotation' | 'decoration' | 'filter'
   selectedFontId: string
   fontSize: number
   inkColor: string
@@ -181,10 +188,18 @@ interface WorkspaceState {
   activeAnnotationTool: AnnotationTool
   annotationStyle: AnnotationStyle
   annotationPresets: AnnotationPreset[]
+  decorationCategory: DecorationCategory
+  selectedDecorationId: string | null
+  isPlacingDecoration: boolean
+  decorationPlacements: DecorationPlacement[]
+  selectedDecorationPlacementId: string | null
+  activeFilter: FilterType
+  filterIntensity: number
+  filterPresets: FilterPreset[]
 
   setText: (text: string, fileName?: string) => void
   clearText: () => void
-  setActiveTab: (tab: 'font' | 'paper' | 'layout' | 'signature' | 'stamp' | 'annotation') => void
+  setActiveTab: (tab: 'font' | 'paper' | 'layout' | 'signature' | 'stamp' | 'annotation' | 'decoration' | 'filter') => void
   setSelectedFontId: (id: string) => void
   setFontSize: (size: number) => void
   setInkColor: (color: string) => void
@@ -233,6 +248,17 @@ interface WorkspaceState {
   addAnnotationPreset: (preset: Omit<AnnotationPreset, 'id'>) => void
   deleteAnnotationPreset: (id: string) => void
   loadAnnotations: (annotations: Annotation[]) => void
+  setDecorationCategory: (category: DecorationCategory) => void
+  setSelectedDecorationId: (id: string | null) => void
+  setIsPlacingDecoration: (placing: boolean) => void
+  addDecorationPlacement: (placement: Omit<DecorationPlacement, 'id'>) => void
+  updateDecorationPlacement: (id: string, updates: Partial<DecorationPlacement>) => void
+  deleteDecorationPlacement: (id: string) => void
+  setSelectedDecorationPlacementId: (id: string | null) => void
+  clearPageDecorations: (pageIndex: number) => void
+  clearAllDecorations: () => void
+  setActiveFilter: (filter: FilterType) => void
+  setFilterIntensity: (intensity: number) => void
 }
 
 const defaultState = {
@@ -316,6 +342,25 @@ const defaultState = {
       style: { color: '#e53935', strokeWidth: 2, opacity: 1 },
     },
   ] as AnnotationPreset[],
+  decorationCategory: 'tape' as DecorationCategory,
+  selectedDecorationId: null as string | null,
+  isPlacingDecoration: false,
+  decorationPlacements: [] as DecorationPlacement[],
+  selectedDecorationPlacementId: null as string | null,
+  activeFilter: 'none' as FilterType,
+  filterIntensity: 0.6,
+  filterPresets: [
+    { id: 'none', name: '无滤镜', description: '保持原始手写效果', intensity: 0 },
+    { id: 'inkBleed', name: '墨迹晕染', description: '墨水渗透纸张的晕染效果', intensity: 0.6 },
+    { id: 'pencilSketch', name: '铅笔素描', description: '细腻的铅笔素描质感', intensity: 0.6 },
+    { id: 'penStroke', name: '钢笔笔触', description: '经典钢笔书写效果', intensity: 0.6 },
+    { id: 'brushStroke', name: '毛笔笔触', description: '毛笔书法的笔触效果', intensity: 0.6 },
+    { id: 'watercolor', name: '水彩渲染', description: '水彩画的柔和渲染', intensity: 0.6 },
+    { id: 'carbonCopy', name: '复写纸', description: '蓝色复写纸的复古效果', intensity: 0.6 },
+    { id: 'fountainPen', name: '钢笔墨痕', description: '老式钢笔的墨迹效果', intensity: 0.6 },
+    { id: 'crayon', name: '蜡笔涂鸦', description: '蜡笔的粗糙质感', intensity: 0.6 },
+    { id: 'marker', name: '马克笔', description: '马克笔的鲜艳笔触', intensity: 0.6 },
+  ] as FilterPreset[],
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
@@ -592,4 +637,60 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
 
   loadAnnotations: (annotations) =>
     set({ annotations }),
+
+  setDecorationCategory: (category) =>
+    set({ decorationCategory: category }),
+
+  setSelectedDecorationId: (id) =>
+    set({ selectedDecorationId: id }),
+
+  setIsPlacingDecoration: (placing) =>
+    set({ isPlacingDecoration: placing }),
+
+  addDecorationPlacement: (placement) =>
+    set((state) => ({
+      decorationPlacements: [
+        ...state.decorationPlacements,
+        {
+          ...placement,
+          id: `deco_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        },
+      ],
+      isPlacingDecoration: false,
+      selectedDecorationId: null,
+    })),
+
+  updateDecorationPlacement: (id, updates) =>
+    set((state) => ({
+      decorationPlacements: state.decorationPlacements.map((d) =>
+        d.id === id ? { ...d, ...updates } : d
+      ),
+    })),
+
+  deleteDecorationPlacement: (id) =>
+    set((state) => ({
+      decorationPlacements: state.decorationPlacements.filter((d) => d.id !== id),
+      selectedDecorationPlacementId:
+        state.selectedDecorationPlacementId === id ? null : state.selectedDecorationPlacementId,
+    })),
+
+  setSelectedDecorationPlacementId: (id) =>
+    set({ selectedDecorationPlacementId: id }),
+
+  clearPageDecorations: (pageIndex) =>
+    set((state) => ({
+      decorationPlacements: state.decorationPlacements.filter((d) => d.pageIndex !== pageIndex),
+    })),
+
+  clearAllDecorations: () =>
+    set({
+      decorationPlacements: [],
+      selectedDecorationPlacementId: null,
+    }),
+
+  setActiveFilter: (filter) =>
+    set({ activeFilter: filter }),
+
+  setFilterIntensity: (intensity) =>
+    set({ filterIntensity: Math.max(0, Math.min(1, intensity)) }),
 }))

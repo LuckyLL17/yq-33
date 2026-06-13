@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { Type, StickyNote, LayoutGrid, PenTool, Stamp, ListPlus } from 'lucide-react'
+import { Type, StickyNote, LayoutGrid, PenTool, Stamp, ListPlus, Layers, Wand2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import Header from '@/components/layout/Header'
@@ -12,6 +12,8 @@ import LayoutSettings from '@/components/settings/LayoutSettings'
 import SignaturePanel from '@/components/signature/SignaturePanel'
 import StampPanel from '@/components/signature/StampPanel'
 import AnnotationPanel from '@/components/annotation/AnnotationPanel'
+import DecorationPanel from '@/components/decoration/DecorationPanel'
+import FilterSettings from '@/components/settings/FilterSettings'
 import HandwritingPreview from '@/components/preview/HandwritingPreview'
 import ExportActions from '@/components/export/ExportActions'
 
@@ -30,6 +32,16 @@ const tabs = [
     id: 'layout' as const,
     label: '排版',
     icon: LayoutGrid,
+  },
+  {
+    id: 'filter' as const,
+    label: '滤镜',
+    icon: Wand2,
+  },
+  {
+    id: 'decoration' as const,
+    label: '装饰',
+    icon: Layers,
   },
   {
     id: 'signature' as const,
@@ -60,6 +72,10 @@ export default function Workbench() {
         return <PaperSettings />
       case 'layout':
         return <LayoutSettings />
+      case 'filter':
+        return <FilterSettings />
+      case 'decoration':
+        return <DecorationPanel />
       case 'signature':
         return <SignaturePanel />
       case 'stamp':

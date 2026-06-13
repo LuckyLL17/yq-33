@@ -5,6 +5,9 @@ import type { PaperType } from '@/types'
 import { drawSignaturesForPage, loadSignatureImages } from '@/utils/signatureRenderer'
 import { drawStampsForPage, loadStampImages } from '@/utils/stampRenderer'
 import { drawAnnotationsForPage } from '@/utils/annotationRenderer'
+import { drawDecorationsForPage, loadDecorationImages, type DecorationImageCache } from '@/utils/decorationRenderer'
+import { applyFilter } from '@/utils/filterEffects'
+import { decorationPresets } from '@/constants/decorationPresets'
 
 const PAGE_WIDTH = 794
 const PAGE_HEIGHT = 1123
@@ -464,9 +467,20 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
     setTotalPages(totalPages)
   }, [totalPages, setTotalPages])
 
-  const { signatures, signaturePlacements, stamps, stampPlacements, annotations } = useWorkspaceStore()
+  const {
+    signatures,
+    signaturePlacements,
+    stamps,
+    stampPlacements,
+    annotations,
+    decorationPlacements,
+    activeFilter,
+    filterIntensity,
+    inkColor,
+  } = useWorkspaceStore()
   const [signatureImages, setSignatureImages] = useState<Record<string, HTMLImageElement>>({})
   const [stampImages, setStampImages] = useState<Record<string, HTMLImageElement>>({})
+  const [decorationImages, setDecorationImages] = useState<DecorationImageCache>({})
 
   useEffect(() => {
     loadSignatureImages(signatures).then(setSignatureImages)
@@ -475,6 +489,10 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
   useEffect(() => {
     loadStampImages(stamps).then(setStampImages)
   }, [stamps])
+
+  useEffect(() => {
+    loadDecorationImages(decorationPresets).then(setDecorationImages)
+  }, [])
 
   const drawSignatures = useCallback((ctx: CanvasRenderingContext2D, pageIdx: number) => {
     drawSignaturesForPage({
@@ -504,6 +522,15 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
     })
   }, [annotations])
 
+  const drawDecorations = useCallback((ctx: CanvasRenderingContext2D, pageIdx: number) => {
+    drawDecorationsForPage({
+      ctx,
+      pageIdx,
+      decorationPlacements,
+      decorationImages,
+    })
+  }, [decorationPlacements, decorationImages])
+
   const renderToCanvas = useCallback((canvas: HTMLCanvasElement, pageIdx: number) => {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
@@ -518,16 +545,24 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
 
     drawPaper(ctx, renderState)
     drawHandwrittenPage(ctx, pages[safeIdx] || [], renderState, safeIdx)
+
+    if (activeFilter !== 'none') {
+      applyFilter(ctx, activeFilter, filterIntensity, inkColor)
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
+    }
+
     drawSignatures(ctx, safeIdx)
     drawStamps(ctx, safeIdx)
     drawAnnotations(ctx, safeIdx)
-  }, [rawText, renderState, computePages, drawSignatures, drawStamps, drawAnnotations])
+    drawDecorations(ctx, safeIdx)
+  }, [rawText, renderState, computePages, drawSignatures, drawStamps, drawAnnotations, drawDecorations, activeFilter, filterIntensity, inkColor])
 
   const renderAllCanvases = useCallback(async (): Promise<HTMLCanvasElement[]> => {
     const pages = computePages(rawText || ' ', renderState)
     const canvases: HTMLCanvasElement[] = []
     const sigImages = await loadSignatureImages(signatures)
     const sImages = await loadStampImages(stamps)
+    const dImages = await loadDecorationImages(decorationPresets)
 
     for (let i = 0; i < pages.length; i++) {
       const c = document.createElement('canvas')
@@ -538,6 +573,11 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
       drawPaper(ctx, renderState)
       drawHandwrittenPage(ctx, pages[i] || [], renderState, i)
+
+      if (activeFilter !== 'none') {
+        applyFilter(ctx, activeFilter, filterIntensity, inkColor)
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
+      }
 
       drawSignaturesForPage({
         ctx,
@@ -561,10 +601,17 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
         annotations,
       })
 
+      drawDecorationsForPage({
+        ctx,
+        pageIdx: i,
+        decorationPlacements,
+        decorationImages: dImages,
+      })
+
       canvases.push(c)
     }
     return canvases
-  }, [rawText, renderState, computePages, signatures, signaturePlacements, stamps, stampPlacements, annotations])
+  }, [rawText, renderState, computePages, signatures, signaturePlacements, stamps, stampPlacements, annotations, decorationPlacements, activeFilter, filterIntensity, inkColor])
 
   useEffect(() => {
     if (!canvasRef.current) return

@@ -1,5 +1,38 @@
 export type PaperType = 'blank' | 'line' | 'grid' | 'kraft' | 'dotted';
 
+export type DecorationCategory = 'tape' | 'sticker' | 'flower' | 'stamp' | 'corner' | 'ribbon';
+
+export interface DecorationPreset {
+  id: string;
+  name: string;
+  category: DecorationCategory;
+  svgContent: string;
+  defaultWidth: number;
+  defaultHeight: number;
+  tags?: string[];
+}
+
+export interface DecorationPlacement {
+  id: string;
+  decorationId: string;
+  pageIndex: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  opacity: number;
+}
+
+export type FilterType = 'none' | 'inkBleed' | 'pencilSketch' | 'penStroke' | 'brushStroke' | 'watercolor' | 'carbonCopy' | 'fountainPen' | 'crayon' | 'marker';
+
+export interface FilterPreset {
+  id: FilterType;
+  name: string;
+  description: string;
+  intensity: number;
+}
+
 export interface FontPreset {
   id: string;
   name: string;
