@@ -24,12 +24,19 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
       setSelectedSignatureId,
       isDirectSigning,
       setIsDirectSigning,
+      isPlacingStamp,
+      selectedStampId,
+      stamps,
+      addStampPlacement,
+      setIsPlacingStamp,
+      setSelectedStampId,
     } = useWorkspaceStore()
     const { canvasRef, pageSize } = useHandwritingRender({
       externalCanvasRef: ref as React.RefObject<HTMLCanvasElement>,
     })
 
     const selectedSignature = signatures.find((s) => s.id === selectedSignatureId)
+    const selectedStamp = stamps.find((s) => s.id === selectedStampId)
 
     const handleZoomOut = useCallback(() => {
       setZoomLevel(Math.max(0.25, zoomLevel - 0.1))
@@ -53,33 +60,56 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
 
     const handleCanvasClick = useCallback(
       (e: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!isPlacingSignature || !selectedSignatureId) return
+        if (isPlacingSignature && selectedSignatureId) {
+          const canvas = canvasRef.current
+          if (!canvas) return
 
-        const canvas = canvasRef.current
-        if (!canvas) return
+          const rect = canvas.getBoundingClientRect()
+          const scaleX = pageSize.width / rect.width
+          const scaleY = pageSize.height / rect.height
 
-        const rect = canvas.getBoundingClientRect()
-        const scaleX = pageSize.width / rect.width
-        const scaleY = pageSize.height / rect.height
+          const x = (e.clientX - rect.left) * scaleX
+          const y = (e.clientY - rect.top) * scaleY
 
-        const x = (e.clientX - rect.left) * scaleX
-        const y = (e.clientY - rect.top) * scaleY
+          addSignaturePlacement({
+            signatureId: selectedSignatureId,
+            pageIndex: currentPage - 1,
+            x,
+            y,
+            scale: 1,
+          })
+          return
+        }
 
-        addSignaturePlacement({
-          signatureId: selectedSignatureId,
-          pageIndex: currentPage - 1,
-          x,
-          y,
-          scale: 1,
-        })
+        if (isPlacingStamp && selectedStampId) {
+          const canvas = canvasRef.current
+          if (!canvas) return
+
+          const rect = canvas.getBoundingClientRect()
+          const scaleX = pageSize.width / rect.width
+          const scaleY = pageSize.height / rect.height
+
+          const x = (e.clientX - rect.left) * scaleX
+          const y = (e.clientY - rect.top) * scaleY
+
+          addStampPlacement({
+            stampId: selectedStampId,
+            pageIndex: currentPage - 1,
+            x,
+            y,
+            scale: 1,
+          })
+        }
       },
-      [isPlacingSignature, selectedSignatureId, canvasRef, pageSize, currentPage, addSignaturePlacement]
+      [isPlacingSignature, selectedSignatureId, isPlacingStamp, selectedStampId, canvasRef, pageSize, currentPage, addSignaturePlacement, addStampPlacement]
     )
 
     const cancelPlacement = useCallback(() => {
       setIsPlacingSignature(false)
       setSelectedSignatureId(null)
-    }, [setIsPlacingSignature, setSelectedSignatureId])
+      setIsPlacingStamp(false)
+      setSelectedStampId(null)
+    }, [setIsPlacingSignature, setSelectedSignatureId, setIsPlacingStamp, setSelectedStampId])
 
     const handleDirectSign = useCallback(() => {
       setIsDirectSigning(true)
@@ -161,10 +191,10 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
               </button>
             )}
 
-            {isPlacingSignature && selectedSignature ? (
+            {(isPlacingSignature && selectedSignature) || (isPlacingStamp && selectedStamp) ? (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-100 border border-amber-300">
                 <span className="text-xs font-medium text-amber-700">
-                  点击文档放置签名
+                  {(isPlacingStamp && selectedStamp) ? '点击文档放置印章' : '点击文档放置签名'}
                 </span>
                 <button
                   onClick={cancelPlacement}
@@ -257,7 +287,7 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
               <div
                 className={cn(
                   'relative rounded-sm overflow-hidden',
-                  isPlacingSignature && 'cursor-crosshair'
+                  (isPlacingSignature || isPlacingStamp) && 'cursor-crosshair'
                 )}
                 style={{
                   boxShadow: isDirectSigning

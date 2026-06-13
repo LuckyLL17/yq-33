@@ -40,10 +40,49 @@ interface SignaturePlacement {
   scale: number
 }
 
+export type StampShape = 'circle' | 'square' | 'ellipse'
+export type StampBorderStyle = 'solid' | 'double' | 'dashed' | 'none'
+
+export interface Stamp {
+  id: string
+  name: string
+  dataUrl: string
+  width: number
+  height: number
+  createdAt: number
+  bgOpacity: number
+  config: StampConfig
+}
+
+export interface StampConfig {
+  shape: StampShape
+  topText: string
+  centerText: string
+  bottomText: string
+  fontFamily: string
+  fontSize: number
+  color: string
+  borderWidth: number
+  borderStyle: StampBorderStyle
+  size: number
+  rotation: number
+  starSize: number
+  showStar: boolean
+  innerPadding: number
+}
+
+export interface StampPlacement {
+  stampId: string
+  pageIndex: number
+  x: number
+  y: number
+  scale: number
+}
+
 interface WorkspaceState {
   rawText: string
   fileName: string
-  activeTab: 'font' | 'paper' | 'layout' | 'signature'
+  activeTab: 'font' | 'paper' | 'layout' | 'signature' | 'stamp'
   selectedFontId: string
   fontSize: number
   inkColor: string
@@ -68,10 +107,14 @@ interface WorkspaceState {
   selectedSignatureId: string | null
   isPlacingSignature: boolean
   isDirectSigning: boolean
+  stamps: Stamp[]
+  stampPlacements: StampPlacement[]
+  selectedStampId: string | null
+  isPlacingStamp: boolean
 
   setText: (text: string, fileName?: string) => void
   clearText: () => void
-  setActiveTab: (tab: 'font' | 'paper' | 'layout' | 'signature') => void
+  setActiveTab: (tab: 'font' | 'paper' | 'layout' | 'signature' | 'stamp') => void
   setSelectedFontId: (id: string) => void
   setFontSize: (size: number) => void
   setInkColor: (color: string) => void
@@ -99,6 +142,15 @@ interface WorkspaceState {
   deleteSignaturePlacement: (index: number) => void
   setIsPlacingSignature: (placing: boolean) => void
   setIsDirectSigning: (signing: boolean) => void
+  addStamp: (stamp: Omit<Stamp, 'id' | 'createdAt'>) => void
+  deleteStamp: (id: string) => void
+  updateStampName: (id: string, name: string) => void
+  updateStampBgOpacity: (id: string, bgOpacity: number) => void
+  setSelectedStampId: (id: string | null) => void
+  addStampPlacement: (placement: StampPlacement) => void
+  updateStampPlacement: (index: number, placement: Partial<StampPlacement>) => void
+  deleteStampPlacement: (index: number) => void
+  setIsPlacingStamp: (placing: boolean) => void
 }
 
 const defaultState = {
@@ -129,6 +181,10 @@ const defaultState = {
   selectedSignatureId: null as string | null,
   isPlacingSignature: false,
   isDirectSigning: false,
+  stamps: [] as Stamp[],
+  stampPlacements: [] as StampPlacement[],
+  selectedStampId: null as string | null,
+  isPlacingStamp: false,
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
@@ -280,4 +336,63 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
 
   setIsDirectSigning: (signing) =>
     set({ isDirectSigning: signing }),
+
+  addStamp: (stamp) =>
+    set((state) => ({
+      stamps: [
+        ...state.stamps,
+        {
+          ...stamp,
+          bgOpacity: stamp.bgOpacity ?? 0,
+          id: `stamp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          createdAt: Date.now(),
+        },
+      ],
+    })),
+
+  deleteStamp: (id) =>
+    set((state) => ({
+      stamps: state.stamps.filter((s) => s.id !== id),
+      stampPlacements: state.stampPlacements.filter((p) => p.stampId !== id),
+      selectedStampId: state.selectedStampId === id ? null : state.selectedStampId,
+    })),
+
+  updateStampName: (id, name) =>
+    set((state) => ({
+      stamps: state.stamps.map((s) =>
+        s.id === id ? { ...s, name } : s
+      ),
+    })),
+
+  updateStampBgOpacity: (id, bgOpacity) =>
+    set((state) => ({
+      stamps: state.stamps.map((s) =>
+        s.id === id ? { ...s, bgOpacity: Math.max(0, Math.min(1, bgOpacity)) } : s
+      ),
+    })),
+
+  setSelectedStampId: (id) =>
+    set({ selectedStampId: id }),
+
+  addStampPlacement: (placement) =>
+    set((state) => ({
+      stampPlacements: [...state.stampPlacements, placement],
+      isPlacingStamp: false,
+      selectedStampId: null,
+    })),
+
+  updateStampPlacement: (index, placement) =>
+    set((state) => ({
+      stampPlacements: state.stampPlacements.map((p, i) =>
+        i === index ? { ...p, ...placement } : p
+      ),
+    })),
+
+  deleteStampPlacement: (index) =>
+    set((state) => ({
+      stampPlacements: state.stampPlacements.filter((_, i) => i !== index),
+    })),
+
+  setIsPlacingStamp: (placing) =>
+    set({ isPlacingStamp: placing }),
 }))

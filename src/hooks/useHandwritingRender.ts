@@ -3,6 +3,7 @@ import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { fontPresets, paperPresets } from '@/constants/presets'
 import type { PaperType } from '@/types'
 import { drawSignaturesForPage, loadSignatureImages } from '@/utils/signatureRenderer'
+import { drawStampsForPage, loadStampImages } from '@/utils/stampRenderer'
 
 const PAGE_WIDTH = 794
 const PAGE_HEIGHT = 1123
@@ -462,12 +463,17 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
     setTotalPages(totalPages)
   }, [totalPages, setTotalPages])
 
-  const { signatures, signaturePlacements } = useWorkspaceStore()
+  const { signatures, signaturePlacements, stamps, stampPlacements } = useWorkspaceStore()
   const [signatureImages, setSignatureImages] = useState<Record<string, HTMLImageElement>>({})
+  const [stampImages, setStampImages] = useState<Record<string, HTMLImageElement>>({})
 
   useEffect(() => {
     loadSignatureImages(signatures).then(setSignatureImages)
   }, [signatures])
+
+  useEffect(() => {
+    loadStampImages(stamps).then(setStampImages)
+  }, [stamps])
 
   const drawSignatures = useCallback((ctx: CanvasRenderingContext2D, pageIdx: number) => {
     drawSignaturesForPage({
@@ -478,6 +484,16 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
       signatureImages,
     })
   }, [signatures, signaturePlacements, signatureImages])
+
+  const drawStamps = useCallback((ctx: CanvasRenderingContext2D, pageIdx: number) => {
+    drawStampsForPage({
+      ctx,
+      pageIdx,
+      stamps,
+      stampPlacements,
+      stampImages,
+    })
+  }, [stamps, stampPlacements, stampImages])
 
   const renderToCanvas = useCallback((canvas: HTMLCanvasElement, pageIdx: number) => {
     const ctx = canvas.getContext('2d')
@@ -494,12 +510,14 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
     drawPaper(ctx, renderState)
     drawHandwrittenPage(ctx, pages[safeIdx] || [], renderState, safeIdx)
     drawSignatures(ctx, safeIdx)
-  }, [rawText, renderState, computePages, drawSignatures])
+    drawStamps(ctx, safeIdx)
+  }, [rawText, renderState, computePages, drawSignatures, drawStamps])
 
   const renderAllCanvases = useCallback(async (): Promise<HTMLCanvasElement[]> => {
     const pages = computePages(rawText || ' ', renderState)
     const canvases: HTMLCanvasElement[] = []
     const sigImages = await loadSignatureImages(signatures)
+    const sImages = await loadStampImages(stamps)
 
     for (let i = 0; i < pages.length; i++) {
       const c = document.createElement('canvas')
@@ -519,10 +537,18 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
         signatureImages: sigImages,
       })
 
+      drawStampsForPage({
+        ctx,
+        pageIdx: i,
+        stamps,
+        stampPlacements,
+        stampImages: sImages,
+      })
+
       canvases.push(c)
     }
     return canvases
-  }, [rawText, renderState, computePages, signatures, signaturePlacements])
+  }, [rawText, renderState, computePages, signatures, signaturePlacements, stamps, stampPlacements])
 
   useEffect(() => {
     if (!canvasRef.current) return
