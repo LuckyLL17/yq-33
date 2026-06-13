@@ -476,7 +476,6 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
     decorationPlacements,
     activeFilter,
     filterIntensity,
-    inkColor,
   } = useWorkspaceStore()
   const [signatureImages, setSignatureImages] = useState<Record<string, HTMLImageElement>>({})
   const [stampImages, setStampImages] = useState<Record<string, HTMLImageElement>>({})
