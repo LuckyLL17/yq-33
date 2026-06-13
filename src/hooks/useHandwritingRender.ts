@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useMemo } from 'react'
+import { useRef, useEffect, useCallback, useMemo, useState } from 'react'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { fontPresets, paperPresets } from '@/constants/presets'
 import type { PaperType } from '@/types'
@@ -461,6 +461,43 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
     setTotalPages(totalPages)
   }, [totalPages, setTotalPages])
 
+  const { signatures, signaturePlacements } = useWorkspaceStore()
+  const [signatureImages, setSignatureImages] = useState<Record<string, HTMLImageElement>>({})
+
+  useEffect(() => {
+    const loadImages = async () => {
+      const images: Record<string, HTMLImageElement> = {}
+      for (const sig of signatures) {
+        try {
+          const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const image = new Image()
+            image.onload = () => resolve(image)
+            image.onerror = reject
+            image.src = sig.dataUrl
+          })
+          images[sig.id] = img
+        } catch {
+          // skip failed images
+        }
+      }
+      setSignatureImages(images)
+    }
+    loadImages()
+  }, [signatures])
+
+  const drawSignatures = useCallback((ctx: CanvasRenderingContext2D, pageIdx: number) => {
+    const placements = signaturePlacements.filter((p) => p.pageIndex === pageIdx)
+    placements.forEach((placement) => {
+      const sig = signatures.find((s) => s.id === placement.signatureId)
+      const img = signatureImages[placement.signatureId]
+      if (!sig || !img) return
+
+      const w = sig.width * placement.scale
+      const h = sig.height * placement.scale
+      ctx.drawImage(img, placement.x - w / 2, placement.y - h / 2, w, h)
+    })
+  }, [signatures, signaturePlacements, signatureImages])
+
   const renderToCanvas = useCallback((canvas: HTMLCanvasElement, pageIdx: number) => {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
@@ -475,11 +512,31 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
 
     drawPaper(ctx, renderState)
     drawHandwrittenPage(ctx, pages[safeIdx] || [], renderState, safeIdx)
-  }, [rawText, renderState, computePages])
+    drawSignatures(ctx, safeIdx)
+  }, [rawText, renderState, computePages, drawSignatures])
 
   const renderAllCanvases = useCallback(async (): Promise<HTMLCanvasElement[]> => {
     const pages = computePages(rawText || ' ', renderState)
     const canvases: HTMLCanvasElement[] = []
+
+    const loadImage = (src: string): Promise<HTMLImageElement> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => resolve(img)
+        img.onerror = reject
+        img.src = src
+      })
+    }
+
+    const signatureImages: Record<string, HTMLImageElement> = {}
+    for (const sig of signatures) {
+      try {
+        signatureImages[sig.id] = await loadImage(sig.dataUrl)
+      } catch {
+        // skip failed images
+      }
+    }
+
     for (let i = 0; i < pages.length; i++) {
       const c = document.createElement('canvas')
       c.width = PAGE_WIDTH * DPR
@@ -489,10 +546,21 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
       drawPaper(ctx, renderState)
       drawHandwrittenPage(ctx, pages[i] || [], renderState, i)
+
+      const placements = signaturePlacements.filter((p) => p.pageIndex === i)
+      placements.forEach((placement) => {
+        const sig = signatures.find((s) => s.id === placement.signatureId)
+        const img = signatureImages[placement.signatureId]
+        if (!sig || !img) return
+        const w = sig.width * placement.scale
+        const h = sig.height * placement.scale
+        ctx.drawImage(img, placement.x - w / 2, placement.y - h / 2, w, h)
+      })
+
       canvases.push(c)
     }
     return canvases
-  }, [rawText, renderState, computePages])
+  }, [rawText, renderState, computePages, signatures, signaturePlacements])
 
   useEffect(() => {
     if (!canvasRef.current) return

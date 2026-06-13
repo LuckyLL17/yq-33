@@ -1,5 +1,5 @@
-import { forwardRef, useCallback } from 'react'
-import { ZoomOut, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react'
+import { forwardRef, useCallback, useRef } from 'react'
+import { ZoomOut, ZoomIn, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { useHandwritingRender } from '@/hooks/useHandwritingRender'
@@ -8,16 +8,25 @@ interface HandwritingPreviewProps {}
 
 const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps>(
   (_props, ref) => {
+    const containerRef = useRef<HTMLDivElement>(null)
     const {
       zoomLevel,
       setZoomLevel,
       currentPage,
       setCurrentPage,
       totalPages,
+      isPlacingSignature,
+      selectedSignatureId,
+      signatures,
+      addSignaturePlacement,
+      setIsPlacingSignature,
+      setSelectedSignatureId,
     } = useWorkspaceStore()
-    const { canvasRef } = useHandwritingRender({
+    const { canvasRef, pageSize } = useHandwritingRender({
       externalCanvasRef: ref as React.RefObject<HTMLCanvasElement>,
     })
+
+    const selectedSignature = signatures.find((s) => s.id === selectedSignatureId)
 
     const handleZoomOut = useCallback(() => {
       setZoomLevel(Math.max(0.25, zoomLevel - 0.1))
@@ -38,6 +47,36 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
     const handleNextPage = useCallback(() => {
       setCurrentPage(currentPage + 1)
     }, [currentPage, setCurrentPage])
+
+    const handleCanvasClick = useCallback(
+      (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!isPlacingSignature || !selectedSignatureId) return
+
+        const canvas = canvasRef.current
+        if (!canvas) return
+
+        const rect = canvas.getBoundingClientRect()
+        const scaleX = pageSize.width / rect.width
+        const scaleY = pageSize.height / rect.height
+
+        const x = (e.clientX - rect.left) * scaleX
+        const y = (e.clientY - rect.top) * scaleY
+
+        addSignaturePlacement({
+          signatureId: selectedSignatureId,
+          pageIndex: currentPage - 1,
+          x,
+          y,
+          scale: 1,
+        })
+      },
+      [isPlacingSignature, selectedSignatureId, canvasRef, pageSize, currentPage, addSignaturePlacement]
+    )
+
+    const cancelPlacement = useCallback(() => {
+      setIsPlacingSignature(false)
+      setSelectedSignatureId(null)
+    }, [setIsPlacingSignature, setSelectedSignatureId])
 
     return (
       <div className={cn('flex-1 min-h-0 flex flex-col', 'p-4 gap-3')}>
@@ -97,56 +136,71 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
             </button>
           </div>
 
-          <div
-            className={cn(
-              'flex items-center gap-1',
-              'px-2 py-1 rounded-lg',
-              'bg-stone-50 border border-stone-200'
-            )}
-          >
-            <button
-              onClick={handlePrevPage}
-              disabled={currentPage <= 1}
-              className={cn(
-                'w-7 h-7 rounded-md',
-                'flex items-center justify-center',
-                'text-stone-600 hover:text-amber-700',
-                'hover:bg-white',
-                'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent',
-                'transition-all duration-200'
-              )}
-              title="上一页"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <div className="flex items-center gap-1 px-2">
-              <span className="text-xs font-bold text-amber-700 min-w-[20px] text-center">
-                {currentPage}
+          {isPlacingSignature && selectedSignature ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-100 border border-amber-300">
+              <span className="text-xs font-medium text-amber-700">
+                点击文档放置签名
               </span>
-              <span className="text-xs text-stone-400">/</span>
-              <span className="text-xs font-medium text-stone-600 min-w-[20px] text-center">
-                {totalPages}
-              </span>
+              <button
+                onClick={cancelPlacement}
+                className="p-0.5 rounded text-amber-600 hover:bg-amber-200 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
-            <button
-              onClick={handleNextPage}
-              disabled={currentPage >= totalPages}
+          ) : (
+            <div
               className={cn(
-                'w-7 h-7 rounded-md',
-                'flex items-center justify-center',
-                'text-stone-600 hover:text-amber-700',
-                'hover:bg-white',
-                'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent',
-                'transition-all duration-200'
+                'flex items-center gap-1',
+                'px-2 py-1 rounded-lg',
+                'bg-stone-50 border border-stone-200'
               )}
-              title="下一页"
             >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+              <button
+                onClick={handlePrevPage}
+                disabled={currentPage <= 1}
+                className={cn(
+                  'w-7 h-7 rounded-md',
+                  'flex items-center justify-center',
+                  'text-stone-600 hover:text-amber-700',
+                  'hover:bg-white',
+                  'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent',
+                  'transition-all duration-200'
+                )}
+                title="上一页"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-1 px-2">
+                <span className="text-xs font-bold text-amber-700 min-w-[20px] text-center">
+                  {currentPage}
+                </span>
+                <span className="text-xs text-stone-400">/</span>
+                <span className="text-xs font-medium text-stone-600 min-w-[20px] text-center">
+                  {totalPages}
+                </span>
+              </div>
+              <button
+                onClick={handleNextPage}
+                disabled={currentPage >= totalPages}
+                className={cn(
+                  'w-7 h-7 rounded-md',
+                  'flex items-center justify-center',
+                  'text-stone-600 hover:text-amber-700',
+                  'hover:bg-white',
+                  'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent',
+                  'transition-all duration-200'
+                )}
+                title="下一页"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
 
         <div
+          ref={containerRef}
           className={cn(
             'flex-1 min-h-0',
             'relative overflow-auto',
@@ -178,7 +232,8 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
                 className={cn(
                   'relative rounded-sm overflow-hidden',
                   'shadow-[0_35px_60px_-15px_rgba(0,0,0,0.4)]',
-                  'shadow-stone-700/30'
+                  'shadow-stone-700/30',
+                  isPlacingSignature && 'cursor-crosshair'
                 )}
                 style={{
                   boxShadow: `
@@ -191,7 +246,11 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
                   `,
                 }}
               >
-                <canvas ref={canvasRef} className="block" />
+                <canvas
+                  ref={canvasRef}
+                  className="block"
+                  onClick={handleCanvasClick}
+                />
               </div>
             </div>
           </div>

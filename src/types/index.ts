@@ -68,6 +68,23 @@ export interface PageLines {
   pageIndex: number;
 }
 
+export interface Signature {
+  id: string;
+  name: string;
+  dataUrl: string;
+  width: number;
+  height: number;
+  createdAt: number;
+}
+
+export interface SignaturePlacement {
+  signatureId: string;
+  pageIndex: number;
+  x: number;
+  y: number;
+  scale: number;
+}
+
 export interface WorkspaceState {
   rawText: string;
   fileName: string;

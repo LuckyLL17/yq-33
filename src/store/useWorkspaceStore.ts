@@ -17,10 +17,27 @@ export interface PaperPreset {
   hasMargin: boolean
 }
 
+interface Signature {
+  id: string
+  name: string
+  dataUrl: string
+  width: number
+  height: number
+  createdAt: number
+}
+
+interface SignaturePlacement {
+  signatureId: string
+  pageIndex: number
+  x: number
+  y: number
+  scale: number
+}
+
 interface WorkspaceState {
   rawText: string
   fileName: string
-  activeTab: 'font' | 'paper' | 'layout'
+  activeTab: 'font' | 'paper' | 'layout' | 'signature'
   selectedFontId: string
   fontSize: number
   inkColor: string
@@ -40,10 +57,14 @@ interface WorkspaceState {
   zoomLevel: number
   currentPage: number
   totalPages: number
+  signatures: Signature[]
+  signaturePlacements: SignaturePlacement[]
+  selectedSignatureId: string | null
+  isPlacingSignature: boolean
 
   setText: (text: string, fileName?: string) => void
   clearText: () => void
-  setActiveTab: (tab: 'font' | 'paper' | 'layout') => void
+  setActiveTab: (tab: 'font' | 'paper' | 'layout' | 'signature') => void
   setSelectedFontId: (id: string) => void
   setFontSize: (size: number) => void
   setInkColor: (color: string) => void
@@ -61,6 +82,14 @@ interface WorkspaceState {
   setCurrentPage: (page: number) => void
   setTotalPages: (pages: number) => void
   resetSettings: () => void
+  addSignature: (signature: Omit<Signature, 'id' | 'createdAt'>) => void
+  deleteSignature: (id: string) => void
+  updateSignatureName: (id: string, name: string) => void
+  setSelectedSignatureId: (id: string | null) => void
+  addSignaturePlacement: (placement: SignaturePlacement) => void
+  updateSignaturePlacement: (index: number, placement: Partial<SignaturePlacement>) => void
+  deleteSignaturePlacement: (index: number) => void
+  setIsPlacingSignature: (placing: boolean) => void
 }
 
 const defaultState = {
@@ -86,6 +115,10 @@ const defaultState = {
   zoomLevel: 1,
   currentPage: 1,
   totalPages: 1,
+  signatures: [] as Signature[],
+  signaturePlacements: [] as SignaturePlacement[],
+  selectedSignatureId: null as string | null,
+  isPlacingSignature: false,
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
@@ -175,4 +208,55 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
       marginLeft: defaultState.marginLeft,
       zoomLevel: defaultState.zoomLevel,
     }),
+
+  addSignature: (signature) =>
+    set((state) => ({
+      signatures: [
+        ...state.signatures,
+        {
+          ...signature,
+          id: `sig_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          createdAt: Date.now(),
+        },
+      ],
+    })),
+
+  deleteSignature: (id) =>
+    set((state) => ({
+      signatures: state.signatures.filter((s) => s.id !== id),
+      signaturePlacements: state.signaturePlacements.filter((p) => p.signatureId !== id),
+      selectedSignatureId: state.selectedSignatureId === id ? null : state.selectedSignatureId,
+    })),
+
+  updateSignatureName: (id, name) =>
+    set((state) => ({
+      signatures: state.signatures.map((s) =>
+        s.id === id ? { ...s, name } : s
+      ),
+    })),
+
+  setSelectedSignatureId: (id) =>
+    set({ selectedSignatureId: id }),
+
+  addSignaturePlacement: (placement) =>
+    set((state) => ({
+      signaturePlacements: [...state.signaturePlacements, placement],
+      isPlacingSignature: false,
+      selectedSignatureId: null,
+    })),
+
+  updateSignaturePlacement: (index, placement) =>
+    set((state) => ({
+      signaturePlacements: state.signaturePlacements.map((p, i) =>
+        i === index ? { ...p, ...placement } : p
+      ),
+    })),
+
+  deleteSignaturePlacement: (index) =>
+    set((state) => ({
+      signaturePlacements: state.signaturePlacements.filter((_, i) => i !== index),
+    })),
+
+  setIsPlacingSignature: (placing) =>
+    set({ isPlacingSignature: placing }),
 }))
