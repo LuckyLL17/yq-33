@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { FileText, X, Sparkles, Hash, AlignLeft } from 'lucide-react'
+import { FileText, X, Sparkles, Hash, AlignLeft, BookTemplate } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { sampleText } from '@/constants/presets'
+import TemplatePicker from '@/components/templates/TemplatePicker'
 
 export default function TextEditor() {
   const [isFocused, setIsFocused] = useState(false)
+  const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false)
   const { rawText, fileName, setText, clearText } = useWorkspaceStore()
 
   const charCount = rawText.length
@@ -126,24 +128,47 @@ export default function TextEditor() {
             </span>
           </div>
 
-          <button
-            onClick={handleLoadSample}
-            className={cn(
-              'flex items-center gap-1.5',
-              'h-7 px-3 rounded-lg',
-              'text-xs font-medium',
-              'bg-gradient-to-r from-amber-500 to-orange-500 text-white',
-              'hover:from-amber-600 hover:to-orange-600',
-              'shadow-sm shadow-amber-200/50',
-              'transition-all duration-200',
-              'active:scale-[0.97]'
-            )}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            加载示例文本
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsTemplatePickerOpen(true)}
+              className={cn(
+                'flex items-center gap-1.5',
+                'h-7 px-3 rounded-lg',
+                'text-xs font-medium',
+                'bg-gradient-to-r from-violet-500 to-purple-500 text-white',
+                'hover:from-violet-600 hover:to-purple-600',
+                'shadow-sm shadow-violet-200/50',
+                'transition-all duration-200',
+                'active:scale-[0.97]'
+              )}
+            >
+              <BookTemplate className="w-3.5 h-3.5" />
+              选择模板
+            </button>
+            <button
+              onClick={handleLoadSample}
+              className={cn(
+                'flex items-center gap-1.5',
+                'h-7 px-3 rounded-lg',
+                'text-xs font-medium',
+                'bg-gradient-to-r from-amber-500 to-orange-500 text-white',
+                'hover:from-amber-600 hover:to-orange-600',
+                'shadow-sm shadow-amber-200/50',
+                'transition-all duration-200',
+                'active:scale-[0.97]'
+              )}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              示例文本
+            </button>
+          </div>
         </div>
       </div>
+
+      <TemplatePicker
+        isOpen={isTemplatePickerOpen}
+        onClose={() => setIsTemplatePickerOpen(false)}
+      />
     </div>
   )
 }
