@@ -12,6 +12,8 @@ type DrawState = {
   isDrawing: boolean
   startX: number
   startY: number
+  endX: number
+  endY: number
   points: { x: number; y: number }[]
   tempText: string
 }
@@ -24,6 +26,8 @@ export default function AnnotationOverlay() {
     isDrawing: false,
     startX: 0,
     startY: 0,
+    endX: 0,
+    endY: 0,
     points: [],
     tempText: '',
   })
@@ -350,6 +354,8 @@ export default function AnnotationOverlay() {
           isDrawing: false,
           startX: pos.x,
           startY: pos.y,
+          endX: pos.x,
+          endY: pos.y,
           points: [],
           tempText: '',
         })
@@ -390,6 +396,8 @@ export default function AnnotationOverlay() {
           isDrawing: true,
           startX: pos.x,
           startY: pos.y,
+          endX: pos.x,
+          endY: pos.y,
           points: [pos],
           tempText: '',
         })
@@ -399,6 +407,8 @@ export default function AnnotationOverlay() {
           isDrawing: true,
           startX: pos.x,
           startY: pos.y,
+          endX: pos.x,
+          endY: pos.y,
           points: [],
           tempText: '',
         })
@@ -426,6 +436,8 @@ export default function AnnotationOverlay() {
       ) {
         setDrawState((prev) => ({
           ...prev,
+          endX: pos.x,
+          endY: pos.y,
           points: [...prev.points, pos],
         }))
 
@@ -452,6 +464,11 @@ export default function AnnotationOverlay() {
         }
         ctx.restore()
       } else {
+        setDrawState((prev) => ({
+          ...prev,
+          endX: pos.x,
+          endY: pos.y,
+        }))
         clearOverlayCanvas()
         const canvas = overlayCanvasRef.current
         if (!canvas) return
@@ -484,7 +501,7 @@ export default function AnnotationOverlay() {
   const createAnnotationFromDraw = useCallback(() => {
     if (!drawState.isDrawing) return
 
-    const { startX, startY, points } = drawState
+    const { startX, startY, endX, endY, points } = drawState
 
     if (activeAnnotationTool === 'pen' || activeAnnotationTool === 'highlighter') {
       if (points.length > 0) {
@@ -496,13 +513,6 @@ export default function AnnotationOverlay() {
         })
       }
     } else {
-      let endX = 0
-      let endY = 0
-      if (points.length > 0) {
-        endX = points[points.length - 1].x
-        endY = points[points.length - 1].y
-      }
-
       switch (activeAnnotationTool) {
         case 'circle': {
           const x = Math.min(startX, endX)
@@ -577,6 +587,8 @@ export default function AnnotationOverlay() {
       isDrawing: false,
       startX: 0,
       startY: 0,
+      endX: 0,
+      endY: 0,
       points: [],
       tempText: '',
     })
@@ -604,6 +616,8 @@ export default function AnnotationOverlay() {
       isDrawing: false,
       startX: 0,
       startY: 0,
+      endX: 0,
+      endY: 0,
       points: [],
       tempText: '',
     })
