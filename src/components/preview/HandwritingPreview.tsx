@@ -434,7 +434,7 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
                   <AnnotationOverlay />
                 )}
 
-                {decorationPlacements.length > 0 && !isDirectSigning && !isAnnotating && (
+                {(isPlacingDecoration || decorationPlacements.length > 0) && !isDirectSigning && !isAnnotating && (
                   <DecorationOverlay />
                 )}
               </div>

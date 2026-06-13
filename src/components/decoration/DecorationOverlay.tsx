@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
-import { Trash2, RotateCcw, ZoomIn, X, Move } from 'lucide-react'
+import { Trash2, RotateCcw, ZoomIn } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { decorationPresets } from '@/constants/decorationPresets'
@@ -278,174 +278,141 @@ export default function DecorationOverlay() {
   }, [cancelPlacement, selectedDecorationPlacementId, deleteDecorationPlacement, setSelectedDecorationPlacementId])
 
   return (
-    <div className="absolute inset-0 z-10">
-      <div
-        className={cn(
-          'h-11 shrink-0',
-          'flex items-center justify-between',
-          'px-3',
-          'bg-gradient-to-r from-rose-500 to-pink-500 text-white'
-        )}
-      >
-        <div className="flex items-center gap-2">
-          <Move className="w-4 h-4" />
-          <span className="text-xs font-bold">装饰编辑</span>
-          {isPlacingDecoration && (
-            <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">点击信纸放置装饰</span>
-          )}
-          {selectedDecorationPlacementId && !isPlacingDecoration && (
-            <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">拖动移动，角落缩放</span>
-          )}
-        </div>
-        <div className="flex items-center gap-1">
-          {isPlacingDecoration && (
-            <button
-              onClick={cancelPlacement}
-              className="p-1 rounded hover:bg-white/20 transition-colors"
-              title="取消放置"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
+    <div
+      ref={overlayRef}
+      data-overlay="true"
+      className={cn(
+        'absolute inset-0 z-10',
+        'cursor-default',
+        isPlacingDecoration && 'cursor-crosshair'
+      )}
+      onMouseMove={handleMove}
+      onMouseUp={handleEnd}
+      onMouseLeave={handleEnd}
+      onClick={handleOverlayClick}
+    >
+      {pagePlacements.map((placement) => {
+        const preset = decorationPresets.find((p) => p.id === placement.decorationId)
+        if (!preset) return null
+        const isSelected = selectedDecorationPlacementId === placement.id
 
-      <div
-        ref={overlayRef}
-        data-overlay="true"
-        className={cn(
-          'absolute inset-0 top-11',
-          'cursor-default',
-          isPlacingDecoration && 'cursor-crosshair'
-        )}
-        onMouseMove={handleMove}
-        onMouseUp={handleEnd}
-        onMouseLeave={handleEnd}
-        onClick={handleOverlayClick}
-      >
-        {pagePlacements.map((placement) => {
-          const preset = decorationPresets.find((p) => p.id === placement.decorationId)
-          if (!preset) return null
-          const isSelected = selectedDecorationPlacementId === placement.id
-
-          return (
+        return (
+          <div
+            key={placement.id}
+            className={cn(
+              'absolute',
+              isSelected && 'z-20'
+            )}
+            style={{
+              left: `${(placement.x / PAGE_WIDTH) * 100}%`,
+              top: `${(placement.y / PAGE_HEIGHT) * 100}%`,
+              width: `${(placement.width / PAGE_WIDTH) * 100}%`,
+              height: `${(placement.height / PAGE_HEIGHT) * 100}%`,
+              transform: `translate(-50%, -50%) rotate(${placement.rotation}deg)`,
+              opacity: placement.opacity,
+            }}
+            onMouseDown={(e) => startDrag(e, placement)}
+          >
             <div
-              key={placement.id}
               className={cn(
-                'absolute',
-                isSelected && 'z-20'
+                'w-full h-full',
+                isSelected && 'ring-2 ring-rose-500 ring-offset-1'
               )}
-              style={{
-                left: `${(placement.x / PAGE_WIDTH) * 100}%`,
-                top: `${(placement.y / PAGE_HEIGHT) * 100}%`,
-                width: `${(placement.width / PAGE_WIDTH) * 100}%`,
-                height: `${(placement.height / PAGE_HEIGHT) * 100}%`,
-                transform: `translate(-50%, -50%) rotate(${placement.rotation}deg)`,
-                opacity: placement.opacity,
-              }}
-              onMouseDown={(e) => startDrag(e, placement)}
-            >
-              <div
-                className={cn(
-                  'w-full h-full',
-                  isSelected && 'ring-2 ring-rose-500 ring-offset-1'
-                )}
-                dangerouslySetInnerHTML={{ __html: preset.svgContent }}
-                style={{ pointerEvents: 'none' }}
-              />
+              dangerouslySetInnerHTML={{ __html: preset.svgContent }}
+              style={{ pointerEvents: 'none' }}
+            />
 
-              {isSelected && (
-                <>
-                  <div
-                    className={cn(
-                      'absolute -right-2 -bottom-2',
-                      'w-5 h-5 rounded-full',
-                      'bg-rose-500 text-white',
-                      'flex items-center justify-center',
-                      'cursor-nwse-resize shadow-md',
-                      'hover:bg-rose-600 transition-colors'
-                    )}
-                    onMouseDown={(e) => startResize(e, placement)}
-                    title="拖动缩放 (Shift 自由缩放)"
-                  >
-                    <ZoomIn className="w-3 h-3" />
-                  </div>
+            {isSelected && (
+              <>
+                <div
+                  className={cn(
+                    'absolute -right-2 -bottom-2',
+                    'w-5 h-5 rounded-full',
+                    'bg-rose-500 text-white',
+                    'flex items-center justify-center',
+                    'cursor-nwse-resize shadow-md',
+                    'hover:bg-rose-600 transition-colors'
+                  )}
+                  onMouseDown={(e) => startResize(e, placement)}
+                  title="拖动缩放 (Shift 自由缩放)"
+                >
+                  <ZoomIn className="w-3 h-3" />
+                </div>
 
-                  <div
-                    className={cn(
-                      'absolute -right-2 -top-2',
-                      'w-5 h-5 rounded-full',
-                      'bg-amber-500 text-white',
-                      'flex items-center justify-center',
-                      'cursor-grab shadow-md',
-                      'hover:bg-amber-600 transition-colors'
-                    )}
-                    onMouseDown={(e) => startRotate(e, placement)}
-                    title="拖动旋转"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                  </div>
+                <div
+                  className={cn(
+                    'absolute -right-2 -top-2',
+                    'w-5 h-5 rounded-full',
+                    'bg-amber-500 text-white',
+                    'flex items-center justify-center',
+                    'cursor-grab shadow-md',
+                    'hover:bg-amber-600 transition-colors'
+                  )}
+                  onMouseDown={(e) => startRotate(e, placement)}
+                  title="拖动旋转"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </div>
 
-                  <div
-                    className={cn(
-                      'absolute -left-2 -top-2',
-                      'w-5 h-5 rounded-full',
-                      'bg-stone-500 text-white',
-                      'flex items-center justify-center',
-                      'cursor-pointer shadow-md',
-                      'hover:bg-stone-600 transition-colors'
-                    )}
-                    onClick={(e) => handleResetRotation(e, placement.id)}
-                    title="重置旋转"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                  </div>
+                <div
+                  className={cn(
+                    'absolute -left-2 -top-2',
+                    'w-5 h-5 rounded-full',
+                    'bg-stone-500 text-white',
+                    'flex items-center justify-center',
+                    'cursor-pointer shadow-md',
+                    'hover:bg-stone-600 transition-colors'
+                  )}
+                  onClick={(e) => handleResetRotation(e, placement.id)}
+                  title="重置旋转"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </div>
 
-                  <div
-                    className={cn(
-                      'absolute -left-2 -bottom-2',
-                      'w-5 h-5 rounded-full',
-                      'bg-red-500 text-white',
-                      'flex items-center justify-center',
-                      'cursor-pointer shadow-md',
-                      'hover:bg-red-600 transition-colors'
-                    )}
-                    onClick={(e) => handleDelete(e, placement.id)}
-                    title="删除"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </div>
+                <div
+                  className={cn(
+                    'absolute -left-2 -bottom-2',
+                    'w-5 h-5 rounded-full',
+                    'bg-red-500 text-white',
+                    'flex items-center justify-center',
+                    'cursor-pointer shadow-md',
+                    'hover:bg-red-600 transition-colors'
+                  )}
+                  onClick={(e) => handleDelete(e, placement.id)}
+                  title="删除"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </div>
 
-                  <div
-                    className={cn(
-                      'absolute left-1/2 -bottom-8',
-                      '-translate-x-1/2',
-                      'bg-white rounded-lg shadow-lg border border-stone-200',
-                      'px-2 py-1',
-                      'flex items-center gap-1.5'
-                    )}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <span className="text-[10px] text-stone-500">透明度</span>
-                    <input
-                      type="range"
-                      min={0.1}
-                      max={1}
-                      step={0.05}
-                      value={placement.opacity}
-                      onChange={(e) => handleOpacityChange(e, placement.id)}
-                      className="w-16 h-1.5 accent-rose-500"
-                    />
-                    <span className="text-[10px] font-medium text-stone-600 w-8">
-                      {Math.round(placement.opacity * 100)}%
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-          )
-        })}
-      </div>
+                <div
+                  className={cn(
+                    'absolute left-1/2 -bottom-8',
+                    '-translate-x-1/2',
+                    'bg-white rounded-lg shadow-lg border border-stone-200',
+                    'px-2 py-1',
+                    'flex items-center gap-1.5'
+                  )}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="text-[10px] text-stone-500">透明度</span>
+                  <input
+                    type="range"
+                    min={0.1}
+                    max={1}
+                    step={0.05}
+                    value={placement.opacity}
+                    onChange={(e) => handleOpacityChange(e, placement.id)}
+                    className="w-16 h-1.5 accent-rose-500"
+                  />
+                  <span className="text-[10px] font-medium text-stone-600 w-8">
+                    {Math.round(placement.opacity * 100)}%
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
