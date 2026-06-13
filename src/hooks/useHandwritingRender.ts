@@ -217,6 +217,23 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
   }
 }
 
+interface CharDrawInfo {
+  ch: string
+  sizeVar: number
+  cw: number
+  dx: number
+  dy: number
+  rot: number
+  alpha: number
+  inkR: number
+  inkG: number
+  inkB: number
+  spacingJitter: number
+  haloDx: number
+  haloDy: number
+  drySize: number
+}
+
 function drawHandwrittenPage(
   ctx: CanvasRenderingContext2D,
   pageLines: { text: string; isParagraphEnd: boolean }[],
@@ -239,6 +256,7 @@ function drawHandwrittenPage(
 
   const linePx = fontSize * lineHeight
   const ink = hexToRgb(inkColor)
+  const j = Math.max(0.3, jitter)
 
   ctx.save()
   ctx.textBaseline = 'alphabetic'
@@ -254,87 +272,101 @@ function drawHandwrittenPage(
     }
 
     const lineRand = seededRandom(baseSeed + li * 9973)
-    const lineDriftY = (lineRand() - 0.5) * 2.5 * jitter * fontSize * 0.3
-    const lineTilt = (lineRand() - 0.5) * 0.01 * jitter
+    const lineDriftY = (lineRand() - 0.5) * 2.0 * j * fontSize * 0.25
+    const lineTilt = (lineRand() - 0.5) * 0.008 * j
 
-    const charRands: (() => number)[] = []
-    for (let i = 0; i < line.text.length + 2; i++) {
-      charRands.push(seededRandom(baseSeed + li * 9973 + i * 137))
-    }
+    const chars: CharDrawInfo[] = []
+    let totalW = 0
 
-    let totalWidth = 0
-    const charWidths: number[] = []
     for (let ci = 0; ci < line.text.length; ci++) {
-      const ch = line.text[ci]
-      const sizeVar = fontSize * (1 + (charRands[ci]() - 0.5) * 0.12 * Math.max(0.3, jitter))
-      const weightVal = 400 + Math.floor((charRands[ci + 1]() - 0.5) * 300 * Math.max(0.3, jitter))
-      ctx.font = `${weightVal} ${sizeVar.toFixed(1)}px ${fontFamily}`
-      const cw = ctx.measureText(ch).width
-      charWidths.push(cw)
-      totalWidth += cw
-    }
-    totalWidth += Math.max(0, letterSpacing) * (line.text.length - 1)
+      const rand = seededRandom(baseSeed + li * 9973 + ci * 137)
+      const r1 = rand()
+      const r2 = rand()
+      const r3 = rand()
+      const r4 = rand()
+      const r5 = rand()
+      const r6 = rand()
+      const r7 = rand()
 
+      const sizeVar = fontSize * (1 + (r1 - 0.5) * 0.1 * j)
+
+      ctx.font = `400 ${sizeVar.toFixed(1)}px ${fontFamily}`
+      const cw = ctx.measureText(line.text[ci]).width
+
+      const dx = (r2 - 0.5) * 2.5 * j * fontSize * 0.18
+      const dy = lineDriftY + (r3 - 0.5) * 2.0 * j * fontSize * 0.2
+      const rot = lineTilt + (r4 - 0.5) * 0.06 * j
+
+      const alpha = 0.78 + r5 * 0.22
+      const inkVar = 1 + (r6 - 0.5) * 0.12
+      const inkR = Math.min(255, Math.max(0, Math.floor(ink.r * inkVar)))
+      const inkG = Math.min(255, Math.max(0, Math.floor(ink.g * inkVar)))
+      const inkB = Math.min(255, Math.max(0, Math.floor(ink.b * inkVar)))
+
+      const spacingJitter = Math.max(-0.5, (r7 - 0.5) * 1.6 * j)
+
+      chars.push({
+        ch: line.text[ci],
+        sizeVar,
+        cw,
+        dx,
+        dy,
+        rot,
+        alpha,
+        inkR,
+        inkG,
+        inkB,
+        spacingJitter,
+        haloDx: (r4 - 0.5) * 0.6,
+        haloDy: (r5 - 0.5) * 0.5,
+        drySize: sizeVar * (0.88 + r6 * 0.08),
+      })
+
+      totalW += cw
+    }
+
+    totalW += Math.max(0, letterSpacing) * (line.text.length - 1)
+    for (const c of chars) {
+      totalW += c.spacingJitter
+    }
     const maxContentW = pageWidth - marginLeft - marginRight
-    const squeeze = totalWidth > maxContentW ? maxContentW / totalWidth : 1
+    const squeeze = totalW > maxContentW ? maxContentW / totalW : 1
 
     let x = marginLeft
 
-    for (let ci = 0; ci < line.text.length; ci++) {
-      const ch = line.text[ci]
-      const r1 = charRands[ci]()
-      const r2 = charRands[ci + 1]()
-      const r3 = charRands[(ci + 2) % charRands.length]()
+    for (let ci = 0; ci < chars.length; ci++) {
+      const c = chars[ci]
+      const cw = c.cw * squeeze
+      const spacing = ci < chars.length - 1 ? letterSpacing : 0
+      const advance = cw + spacing + c.spacingJitter * squeeze
 
-      const sizeVar = fontSize * (1 + (r1 - 0.5) * 0.14 * Math.max(0.3, jitter))
-      const weightVal = 400 + Math.floor((r2 - 0.5) * 320 * Math.max(0.3, jitter))
-      ctx.font = `${weightVal} ${sizeVar.toFixed(1)}px ${fontFamily}`
-
-      const cw = charWidths[ci] * squeeze
-      const spacing = ci < line.text.length - 1 ? letterSpacing : 0
-      const spacingJitter = (r3 - 0.5) * 2.0 * jitter
-
-      const dx = (r1 - 0.5) * 3.0 * jitter * fontSize * 0.22
-      const dy = lineDriftY + (r2 - 0.5) * 2.6 * jitter * fontSize * 0.25
-      const rot = lineTilt + (r3 - 0.5) * 0.1 * Math.max(0.25, jitter)
-
-      const alphaBase = 0.72 + r1 * 0.28
-      const inkVar = 1 + (r2 - 0.5) * 0.15
-      const r = Math.min(255, Math.max(0, Math.floor(ink.r * inkVar)))
-      const g = Math.min(255, Math.max(0, Math.floor(ink.g * inkVar)))
-      const b = Math.min(255, Math.max(0, Math.floor(ink.b * inkVar)))
-      const color = `rgba(${r},${g},${b},${alphaBase})`
-
-      const cx = x + dx + cw / 2
-      const cy = y + dy
+      const cx = x + c.dx + cw / 2
+      const cy = y + c.dy
 
       ctx.save()
       ctx.translate(cx, cy)
-      ctx.rotate(rot)
+      ctx.rotate(c.rot)
 
-      ctx.fillStyle = color
-      ctx.fillText(ch, -cw / 2, 0)
+      ctx.font = `400 ${c.sizeVar.toFixed(1)}px ${fontFamily}`
+      ctx.fillStyle = `rgba(${c.inkR},${c.inkG},${c.inkB},${c.alpha})`
+      ctx.fillText(c.ch, -cw / 2, 0)
 
-      if (jitter > 0.25 && r3 > 0.6) {
-        const haloAlpha = 0.08 + r1 * 0.12
-        ctx.globalAlpha = haloAlpha
-        ctx.fillStyle = `rgba(${r},${g},${b},1)`
-        ctx.fillText(ch, -cw / 2 + (r2 - 0.5) * 0.8, (r3 - 0.5) * 0.6)
+      if (jitter > 0.25 && c.rot !== 0 && Math.abs(c.dx) > 0.3) {
+        ctx.globalAlpha = 0.07 + c.alpha * 0.08
+        ctx.fillText(c.ch, -cw / 2 + c.haloDx, c.haloDy)
         ctx.globalAlpha = 1
       }
 
-      if (jitter > 0.4 && r1 > 0.75) {
-        const dryAlpha = 0.3 + r2 * 0.35
-        ctx.globalAlpha = dryAlpha
-        ctx.fillStyle = `rgba(${r},${g},${b},1)`
-        ctx.font = `${Math.max(100, weightVal - 150)} ${(sizeVar * 0.9).toFixed(1)}px ${fontFamily}`
-        ctx.fillText(ch, -cw / 2 + (r3 - 0.5) * 1.2, (r1 - 0.5) * 0.8)
+      if (jitter > 0.45 && c.alpha < 0.85) {
+        ctx.globalAlpha = 0.18 + c.alpha * 0.15
+        ctx.font = `400 ${c.drySize.toFixed(1)}px ${fontFamily}`
+        ctx.fillText(c.ch, -cw / 2 + c.haloDx * 1.5, c.haloDy * 1.2)
         ctx.globalAlpha = 1
       }
 
       ctx.restore()
 
-      x += cw + spacing + spacingJitter
+      x += advance
     }
 
     y += linePx
