@@ -16,13 +16,9 @@ export function seededRandom(seed: number): () => number {
   }
 }
 
-interface PageInfo {
-  totalPages: number
-}
-
 function buildFontFamily(selectedFontId: string): string {
   const preset = fontPresets.find((f) => f.id === selectedFontId)
-  return preset?.fontFamily || '"KaiTi", "STKaiti", "楷体", "Ma Shan Zheng", cursive, serif'
+  return preset?.fontFamily || '"Ma Shan Zheng", "KaiTi", cursive, serif'
 }
 
 interface RenderState {
@@ -46,42 +42,8 @@ interface RenderState {
   showMargin: boolean
 }
 
-function readRenderState(s: ReturnType<typeof useWorkspaceStore.getState>): RenderState {
-  const paper = paperPresets.find((p) => p.id === s.selectedPaperId) || paperPresets[0]
-  const typeMap: Record<string, PaperType> = {
-    blank: 'blank',
-    line: 'line',
-    grid: 'grid',
-    squared: 'grid',
-    notebook: 'line',
-    kraft: 'kraft',
-    newspaper: 'blank',
-    dotted: 'dotted',
-  }
-  return {
-    fontFamily: buildFontFamily(s.selectedFontId),
-    fontSize: s.fontSize,
-    inkColor: s.inkColor,
-    jitter: s.jitterAmount,
-    letterSpacing: s.letterSpacing,
-    lineHeight: s.lineHeight,
-    paragraphSpacing: s.paragraphSpacing,
-    marginTop: s.marginTop,
-    marginRight: s.marginRight,
-    marginBottom: s.marginBottom,
-    marginLeft: s.marginLeft,
-    pageWidth: PAGE_WIDTH,
-    pageHeight: PAGE_HEIGHT,
-    paperBgColor: s.paperBgColor || paper.bgColor,
-    paperLineColor: s.paperLineColor || paper.lineColor,
-    paperLineSpacing: s.paperLineSpacing || paper.lineSpacing,
-    paperType: typeMap[s.selectedPaperId] || 'line',
-    showMargin: s.showBindingLine || paper.hasMargin,
-  }
-}
-
 function drawPaper(ctx: CanvasRenderingContext2D, rs: RenderState) {
-  const { pageWidth, pageHeight, paperType, paperBgColor, paperLineColor, paperLineSpacing, showMargin } = rs
+  const { pageWidth, pageHeight, paperType, paperBgColor, paperLineColor, paperLineSpacing, showMargin, marginTop, marginBottom, marginLeft, marginRight } = rs
 
   if (paperType === 'kraft') {
     const gradient = ctx.createLinearGradient(0, 0, pageWidth, pageHeight)
@@ -100,10 +62,10 @@ function drawPaper(ctx: CanvasRenderingContext2D, rs: RenderState) {
     case 'line': {
       ctx.strokeStyle = paperLineColor
       ctx.lineWidth = 0.6
-      for (let y = rs.marginTop; y <= pageHeight - rs.marginBottom; y += paperLineSpacing) {
+      for (let y = marginTop; y <= pageHeight - marginBottom; y += paperLineSpacing) {
         ctx.beginPath()
-        ctx.moveTo(rs.marginLeft, y)
-        ctx.lineTo(pageWidth - rs.marginRight, y)
+        ctx.moveTo(marginLeft, y)
+        ctx.lineTo(pageWidth - marginRight, y)
         ctx.stroke()
       }
       break
@@ -111,16 +73,16 @@ function drawPaper(ctx: CanvasRenderingContext2D, rs: RenderState) {
     case 'grid': {
       ctx.strokeStyle = paperLineColor
       ctx.lineWidth = 0.5
-      for (let y = rs.marginTop; y <= pageHeight - rs.marginBottom; y += paperLineSpacing) {
+      for (let y = marginTop; y <= pageHeight - marginBottom; y += paperLineSpacing) {
         ctx.beginPath()
-        ctx.moveTo(rs.marginLeft, y)
-        ctx.lineTo(pageWidth - rs.marginRight, y)
+        ctx.moveTo(marginLeft, y)
+        ctx.lineTo(pageWidth - marginRight, y)
         ctx.stroke()
       }
-      for (let x = rs.marginLeft; x <= pageWidth - rs.marginRight; x += paperLineSpacing) {
+      for (let x = marginLeft; x <= pageWidth - marginRight; x += paperLineSpacing) {
         ctx.beginPath()
-        ctx.moveTo(x, rs.marginTop)
-        ctx.lineTo(x, pageHeight - rs.marginBottom)
+        ctx.moveTo(x, marginTop)
+        ctx.lineTo(x, pageHeight - marginBottom)
         ctx.stroke()
       }
       break
@@ -128,8 +90,8 @@ function drawPaper(ctx: CanvasRenderingContext2D, rs: RenderState) {
     case 'dotted': {
       ctx.fillStyle = paperLineColor
       const r = 0.8
-      for (let y = rs.marginTop; y <= pageHeight - rs.marginBottom; y += paperLineSpacing) {
-        for (let x = rs.marginLeft; x <= pageWidth - rs.marginRight; x += paperLineSpacing) {
+      for (let y = marginTop; y <= pageHeight - marginBottom; y += paperLineSpacing) {
+        for (let x = marginLeft; x <= pageWidth - marginRight; x += paperLineSpacing) {
           ctx.beginPath()
           ctx.arc(x, y, r, 0, Math.PI * 2)
           ctx.fill()
@@ -147,9 +109,9 @@ function drawPaper(ctx: CanvasRenderingContext2D, rs: RenderState) {
     ctx.strokeStyle = '#e06b6b'
     ctx.lineWidth = 1.2
     ctx.beginPath()
-    const mx = rs.marginLeft - 14
-    ctx.moveTo(mx, rs.marginTop * 0.5)
-    ctx.lineTo(mx, pageHeight - rs.marginBottom * 0.5)
+    const mx = marginLeft - 14
+    ctx.moveTo(mx, marginTop * 0.5)
+    ctx.lineTo(mx, pageHeight - marginBottom * 0.5)
     ctx.stroke()
 
     const holeR = 5
@@ -174,11 +136,6 @@ function drawPaper(ctx: CanvasRenderingContext2D, rs: RenderState) {
   ctx.fillStyle = noise
   ctx.fillRect(0, 0, pageWidth, pageHeight)
   ctx.restore()
-}
-
-interface LineChunk {
-  chars: string[]
-  widths: number[]
 }
 
 function breakTextIntoLines(
@@ -250,6 +207,16 @@ function paginate(
   return pages
 }
 
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = hex.replace('#', '')
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h
+  return {
+    r: parseInt(full.slice(0, 2), 16),
+    g: parseInt(full.slice(2, 4), 16),
+    b: parseInt(full.slice(4, 6), 16),
+  }
+}
+
 function drawHandwrittenPage(
   ctx: CanvasRenderingContext2D,
   pageLines: { text: string; isParagraphEnd: boolean }[],
@@ -266,11 +233,14 @@ function drawHandwrittenPage(
     paragraphSpacing,
     marginTop,
     marginLeft,
+    pageWidth,
+    marginRight,
   } = rs
 
   const linePx = fontSize * lineHeight
+  const ink = hexToRgb(inkColor)
+
   ctx.save()
-  ctx.fillStyle = inkColor
   ctx.textBaseline = 'alphabetic'
 
   let y = marginTop + fontSize
@@ -278,45 +248,93 @@ function drawHandwrittenPage(
 
   for (let li = 0; li < pageLines.length; li++) {
     const line = pageLines[li]
+    if (line.text.length === 0) {
+      y += linePx + (line.isParagraphEnd ? paragraphSpacing : 0)
+      continue
+    }
+
+    const lineRand = seededRandom(baseSeed + li * 9973)
+    const lineDriftY = (lineRand() - 0.5) * 2.5 * jitter * fontSize * 0.3
+    const lineTilt = (lineRand() - 0.5) * 0.01 * jitter
+
+    const charRands: (() => number)[] = []
+    for (let i = 0; i < line.text.length + 2; i++) {
+      charRands.push(seededRandom(baseSeed + li * 9973 + i * 137))
+    }
+
+    let totalWidth = 0
+    const charWidths: number[] = []
+    for (let ci = 0; ci < line.text.length; ci++) {
+      const ch = line.text[ci]
+      const sizeVar = fontSize * (1 + (charRands[ci]() - 0.5) * 0.12 * Math.max(0.3, jitter))
+      const weightVal = 400 + Math.floor((charRands[ci + 1]() - 0.5) * 300 * Math.max(0.3, jitter))
+      ctx.font = `${weightVal} ${sizeVar.toFixed(1)}px ${fontFamily}`
+      const cw = ctx.measureText(ch).width
+      charWidths.push(cw)
+      totalWidth += cw
+    }
+    totalWidth += Math.max(0, letterSpacing) * (line.text.length - 1)
+
+    const maxContentW = pageWidth - marginLeft - marginRight
+    const squeeze = totalWidth > maxContentW ? maxContentW / totalWidth : 1
+
     let x = marginLeft
-    const rand = seededRandom(baseSeed + li * 9973)
 
     for (let ci = 0; ci < line.text.length; ci++) {
       const ch = line.text[ci]
-      if (ch === ' ') {
-        ctx.font = `400 ${fontSize}px ${fontFamily}`
-        x += ctx.measureText(' ').width
-        continue
-      }
+      const r1 = charRands[ci]()
+      const r2 = charRands[ci + 1]()
+      const r3 = charRands[(ci + 2) % charRands.length]()
 
-      const weightVariation = 400 + Math.floor((rand() - 0.5) * 200 * Math.max(0.2, jitter))
-      const sizeVariation = fontSize + (rand() - 0.5) * 1.6 * Math.max(0.2, jitter)
-      ctx.font = `${weightVariation} ${sizeVariation.toFixed(1)}px ${fontFamily}`
+      const sizeVar = fontSize * (1 + (r1 - 0.5) * 0.14 * Math.max(0.3, jitter))
+      const weightVal = 400 + Math.floor((r2 - 0.5) * 320 * Math.max(0.3, jitter))
+      ctx.font = `${weightVal} ${sizeVar.toFixed(1)}px ${fontFamily}`
 
-      const dx = (rand() - 0.5) * 2.2 * Math.max(0.3, jitter) * fontSize * 0.25
-      const dy = (rand() - 0.5) * 2.0 * Math.max(0.3, jitter) * fontSize * 0.25
-      const rot = (rand() - 0.5) * 0.08 * Math.max(0.25, jitter)
+      const cw = charWidths[ci] * squeeze
+      const spacing = ci < line.text.length - 1 ? letterSpacing : 0
+      const spacingJitter = (r3 - 0.5) * 2.0 * jitter
 
-      const cw = ctx.measureText(ch).width
+      const dx = (r1 - 0.5) * 3.0 * jitter * fontSize * 0.22
+      const dy = lineDriftY + (r2 - 0.5) * 2.6 * jitter * fontSize * 0.25
+      const rot = lineTilt + (r3 - 0.5) * 0.1 * Math.max(0.25, jitter)
+
+      const alphaBase = 0.72 + r1 * 0.28
+      const inkVar = 1 + (r2 - 0.5) * 0.15
+      const r = Math.min(255, Math.max(0, Math.floor(ink.r * inkVar)))
+      const g = Math.min(255, Math.max(0, Math.floor(ink.g * inkVar)))
+      const b = Math.min(255, Math.max(0, Math.floor(ink.b * inkVar)))
+      const color = `rgba(${r},${g},${b},${alphaBase})`
+
+      const cx = x + dx + cw / 2
+      const cy = y + dy
 
       ctx.save()
-      ctx.translate(x + dx + cw / 2, y + dy)
+      ctx.translate(cx, cy)
       ctx.rotate(rot)
 
-      if (jitter > 0.15) {
-        ctx.globalAlpha = 0.55 + rand() * 0.4
-      }
-
+      ctx.fillStyle = color
       ctx.fillText(ch, -cw / 2, 0)
 
-      if (jitter > 0.3 && rand() > 0.6) {
-        ctx.globalAlpha = 0.12 + rand() * 0.15
-        ctx.fillText(ch, -cw / 2 + (rand() - 0.5) * 0.6, (rand() - 0.5) * 0.4)
+      if (jitter > 0.25 && r3 > 0.6) {
+        const haloAlpha = 0.08 + r1 * 0.12
+        ctx.globalAlpha = haloAlpha
+        ctx.fillStyle = `rgba(${r},${g},${b},1)`
+        ctx.fillText(ch, -cw / 2 + (r2 - 0.5) * 0.8, (r3 - 0.5) * 0.6)
+        ctx.globalAlpha = 1
+      }
+
+      if (jitter > 0.4 && r1 > 0.75) {
+        const dryAlpha = 0.3 + r2 * 0.35
+        ctx.globalAlpha = dryAlpha
+        ctx.fillStyle = `rgba(${r},${g},${b},1)`
+        ctx.font = `${Math.max(100, weightVal - 150)} ${(sizeVar * 0.9).toFixed(1)}px ${fontFamily}`
+        ctx.fillText(ch, -cw / 2 + (r3 - 0.5) * 1.2, (r1 - 0.5) * 0.8)
+        ctx.globalAlpha = 1
       }
 
       ctx.restore()
 
-      x += cw + letterSpacing
+      x += cw + spacing + spacingJitter
     }
 
     y += linePx
