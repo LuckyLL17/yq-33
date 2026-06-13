@@ -494,7 +494,90 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
 
       const w = sig.width * placement.scale
       const h = sig.height * placement.scale
-      ctx.drawImage(img, placement.x - w / 2, placement.y - h / 2, w, h)
+      const x = placement.x - w / 2
+      const y = placement.y - h / 2
+
+      if (sig.bgOpacity && sig.bgOpacity > 0) {
+        ctx.save()
+        ctx.globalAlpha = sig.bgOpacity
+
+        const paperType = sig.paperType as PaperType
+        const pageWidth = sig.width
+        const pageHeight = sig.height
+        const marginTop = 10
+        const marginBottom = 10
+        const marginLeft = 10
+        const marginRight = 10
+
+        if (paperType === 'kraft') {
+          const gradient = ctx.createLinearGradient(x, y, x + w, y + h)
+          gradient.addColorStop(0, '#d8bf96')
+          gradient.addColorStop(0.5, sig.paperBgColor)
+          gradient.addColorStop(1, '#b8986a')
+          ctx.fillStyle = gradient
+          ctx.fillRect(x, y, w, h)
+        } else {
+          ctx.fillStyle = sig.paperBgColor
+          ctx.fillRect(x, y, w, h)
+        }
+
+        const scaleX = w / pageWidth
+        const scaleY = h / pageHeight
+
+        ctx.save()
+        ctx.translate(x, y)
+        ctx.scale(scaleX, scaleY)
+
+        switch (paperType) {
+          case 'line': {
+            ctx.strokeStyle = sig.paperLineColor
+            ctx.lineWidth = 0.6 / scaleX
+            for (let ly = marginTop; ly <= pageHeight - marginBottom; ly += sig.paperLineSpacing) {
+              ctx.beginPath()
+              ctx.moveTo(marginLeft, ly)
+              ctx.lineTo(pageWidth - marginRight, ly)
+              ctx.stroke()
+            }
+            break
+          }
+          case 'grid': {
+            ctx.strokeStyle = sig.paperLineColor
+            ctx.lineWidth = 0.5 / scaleX
+            for (let ly = marginTop; ly <= pageHeight - marginBottom; ly += sig.paperLineSpacing) {
+              ctx.beginPath()
+              ctx.moveTo(marginLeft, ly)
+              ctx.lineTo(pageWidth - marginRight, ly)
+              ctx.stroke()
+            }
+            for (let lx = marginLeft; lx <= pageWidth - marginRight; lx += sig.paperLineSpacing) {
+              ctx.beginPath()
+              ctx.moveTo(lx, marginTop)
+              ctx.lineTo(lx, pageHeight - marginBottom)
+              ctx.stroke()
+            }
+            break
+          }
+          case 'dotted': {
+            ctx.fillStyle = sig.paperLineColor
+            const r = 0.8 / scaleX
+            for (let ly = marginTop; ly <= pageHeight - marginBottom; ly += sig.paperLineSpacing) {
+              for (let lx = marginLeft; lx <= pageWidth - marginRight; lx += sig.paperLineSpacing) {
+                ctx.beginPath()
+                ctx.arc(lx, ly, r, 0, Math.PI * 2)
+                ctx.fill()
+              }
+            }
+            break
+          }
+          default:
+            break
+        }
+
+        ctx.restore()
+        ctx.restore()
+      }
+
+      ctx.drawImage(img, x, y, w, h)
     })
   }, [signatures, signaturePlacements, signatureImages])
 
@@ -552,9 +635,93 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
         const sig = signatures.find((s) => s.id === placement.signatureId)
         const img = signatureImages[placement.signatureId]
         if (!sig || !img) return
+
         const w = sig.width * placement.scale
         const h = sig.height * placement.scale
-        ctx.drawImage(img, placement.x - w / 2, placement.y - h / 2, w, h)
+        const x = placement.x - w / 2
+        const y = placement.y - h / 2
+
+        if (sig.bgOpacity && sig.bgOpacity > 0) {
+          ctx.save()
+          ctx.globalAlpha = sig.bgOpacity
+
+          const paperType = sig.paperType as PaperType
+          const pageWidth = sig.width
+          const pageHeight = sig.height
+          const marginTop = 10
+          const marginBottom = 10
+          const marginLeft = 10
+          const marginRight = 10
+
+          if (paperType === 'kraft') {
+            const gradient = ctx.createLinearGradient(x, y, x + w, y + h)
+            gradient.addColorStop(0, '#d8bf96')
+            gradient.addColorStop(0.5, sig.paperBgColor)
+            gradient.addColorStop(1, '#b8986a')
+            ctx.fillStyle = gradient
+            ctx.fillRect(x, y, w, h)
+          } else {
+            ctx.fillStyle = sig.paperBgColor
+            ctx.fillRect(x, y, w, h)
+          }
+
+          const scaleX = w / pageWidth
+          const scaleY = h / pageHeight
+
+          ctx.save()
+          ctx.translate(x, y)
+          ctx.scale(scaleX, scaleY)
+
+          switch (paperType) {
+            case 'line': {
+              ctx.strokeStyle = sig.paperLineColor
+              ctx.lineWidth = 0.6 / scaleX
+              for (let ly = marginTop; ly <= pageHeight - marginBottom; ly += sig.paperLineSpacing) {
+                ctx.beginPath()
+                ctx.moveTo(marginLeft, ly)
+                ctx.lineTo(pageWidth - marginRight, ly)
+                ctx.stroke()
+              }
+              break
+            }
+            case 'grid': {
+              ctx.strokeStyle = sig.paperLineColor
+              ctx.lineWidth = 0.5 / scaleX
+              for (let ly = marginTop; ly <= pageHeight - marginBottom; ly += sig.paperLineSpacing) {
+                ctx.beginPath()
+                ctx.moveTo(marginLeft, ly)
+                ctx.lineTo(pageWidth - marginRight, ly)
+                ctx.stroke()
+              }
+              for (let lx = marginLeft; lx <= pageWidth - marginRight; lx += sig.paperLineSpacing) {
+                ctx.beginPath()
+                ctx.moveTo(lx, marginTop)
+                ctx.lineTo(lx, pageHeight - marginBottom)
+                ctx.stroke()
+              }
+              break
+            }
+            case 'dotted': {
+              ctx.fillStyle = sig.paperLineColor
+              const r = 0.8 / scaleX
+              for (let ly = marginTop; ly <= pageHeight - marginBottom; ly += sig.paperLineSpacing) {
+                for (let lx = marginLeft; lx <= pageWidth - marginRight; lx += sig.paperLineSpacing) {
+                  ctx.beginPath()
+                  ctx.arc(lx, ly, r, 0, Math.PI * 2)
+                  ctx.fill()
+                }
+              }
+              break
+            }
+            default:
+              break
+          }
+
+          ctx.restore()
+          ctx.restore()
+        }
+
+        ctx.drawImage(img, x, y, w, h)
       })
 
       canvases.push(c)

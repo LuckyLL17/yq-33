@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Trash2, Edit2, Check, X, PenTool, Image } from 'lucide-react'
+import { Plus, Trash2, Edit2, Check, X, PenTool, Image, Layers } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import SignatureCanvas from './SignatureCanvas'
@@ -9,6 +9,7 @@ export default function SignaturePanel() {
     signatures,
     deleteSignature,
     updateSignatureName,
+    updateSignatureBgOpacity,
     selectedSignatureId,
     setSelectedSignatureId,
     setIsPlacingSignature,
@@ -79,7 +80,7 @@ export default function SignaturePanel() {
           </button>
         </div>
         <p className="text-xs text-stone-400">
-          保存签名后，点击选中即可插入到文档中
+          在信纸上书写签名，可调整背景透明度，默认无背景
         </p>
       </div>
 
@@ -107,12 +108,11 @@ export default function SignaturePanel() {
                 key={sig.id}
                 className={cn(
                   'relative rounded-xl border-2 overflow-hidden',
-                  'transition-all duration-200 cursor-pointer',
+                  'transition-all duration-200',
                   selectedSignatureId === sig.id
                     ? 'border-amber-500 bg-amber-50/50 shadow-md shadow-amber-500/20'
                     : 'border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm'
                 )}
-                onClick={() => handleSelectSignature(sig.id)}
               >
                 {selectedSignatureId === sig.id && (
                   <div className="absolute top-2 right-2 z-10">
@@ -122,9 +122,12 @@ export default function SignaturePanel() {
                   </div>
                 )}
 
-                <div className="p-3 bg-white">
+                <div
+                  className="p-3 bg-white cursor-pointer"
+                  onClick={() => handleSelectSignature(sig.id)}
+                >
                   <div
-                    className="w-full h-16 flex items-center justify-center bg-white rounded-lg border border-stone-100"
+                    className="w-full h-16 flex items-center justify-center rounded-lg border border-stone-100"
                     style={{
                       backgroundImage: `
                         linear-gradient(45deg, #fafaf9 25%, transparent 25%),
@@ -180,33 +183,60 @@ export default function SignaturePanel() {
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-stone-600 truncate">
-                        {sig.name}
-                      </span>
-                      <div className="flex items-center gap-0.5">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            startEditing(sig.id, sig.name)
-                          }}
-                          className="p-1 rounded text-stone-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
-                          title="重命名"
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span
+                          className="text-xs font-medium text-stone-600 truncate cursor-pointer hover:text-amber-700"
+                          onClick={() => handleSelectSignature(sig.id)}
                         >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={(e) => {
+                          {sig.name}
+                        </span>
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              startEditing(sig.id, sig.name)
+                            }}
+                            className="p-1 rounded text-stone-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                            title="重命名"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (confirm('确定要删除这个签名吗？')) {
+                                deleteSignature(sig.id)
+                              }
+                            }}
+                            className="p-1 rounded text-stone-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            title="删除"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Layers className="w-3 h-3 text-stone-400" />
+                        <span className="text-[10px] text-stone-400 whitespace-nowrap">
+                          背景
+                        </span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={(sig.bgOpacity ?? 0) * 100}
+                          onChange={(e) => {
                             e.stopPropagation()
-                            if (confirm('确定要删除这个签名吗？')) {
-                              deleteSignature(sig.id)
-                            }
+                            updateSignatureBgOpacity(sig.id, Number(e.target.value) / 100)
                           }}
-                          className="p-1 rounded text-stone-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                          title="删除"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex-1 h-1 accent-amber-600"
+                        />
+                        <span className="text-[10px] text-stone-400 w-8 text-right">
+                          {Math.round((sig.bgOpacity ?? 0) * 100)}%
+                        </span>
                       </div>
                     </div>
                   )}

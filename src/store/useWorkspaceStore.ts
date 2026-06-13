@@ -24,6 +24,12 @@ interface Signature {
   width: number
   height: number
   createdAt: number
+  bgOpacity: number
+  paperId: string
+  paperBgColor: string
+  paperLineColor: string
+  paperLineSpacing: number
+  paperType: string
 }
 
 interface SignaturePlacement {
@@ -85,6 +91,7 @@ interface WorkspaceState {
   addSignature: (signature: Omit<Signature, 'id' | 'createdAt'>) => void
   deleteSignature: (id: string) => void
   updateSignatureName: (id: string, name: string) => void
+  updateSignatureBgOpacity: (id: string, bgOpacity: number) => void
   setSelectedSignatureId: (id: string | null) => void
   addSignaturePlacement: (placement: SignaturePlacement) => void
   updateSignaturePlacement: (index: number, placement: Partial<SignaturePlacement>) => void
@@ -215,6 +222,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
         ...state.signatures,
         {
           ...signature,
+          bgOpacity: signature.bgOpacity ?? 0,
           id: `sig_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           createdAt: Date.now(),
         },
@@ -232,6 +240,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
     set((state) => ({
       signatures: state.signatures.map((s) =>
         s.id === id ? { ...s, name } : s
+      ),
+    })),
+
+  updateSignatureBgOpacity: (id, bgOpacity) =>
+    set((state) => ({
+      signatures: state.signatures.map((s) =>
+        s.id === id ? { ...s, bgOpacity: Math.max(0, Math.min(1, bgOpacity)) } : s
       ),
     })),
 

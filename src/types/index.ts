@@ -75,6 +75,12 @@ export interface Signature {
   width: number;
   height: number;
   createdAt: number;
+  bgOpacity: number;
+  paperId: string;
+  paperBgColor: string;
+  paperLineColor: string;
+  paperLineSpacing: number;
+  paperType: string;
 }
 
 export interface SignaturePlacement {
