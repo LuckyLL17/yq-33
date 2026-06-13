@@ -75,8 +75,6 @@ export default function AnnotationToolbar({
     annotationStyle,
     setAnnotationStyle,
     annotationPresets,
-    setActiveAnnotationTool: setTool,
-    setAnnotationStyle: setStyle,
   } = useWorkspaceStore()
 
   const handleToolChange = useCallback(
@@ -118,11 +116,11 @@ export default function AnnotationToolbar({
     (presetId: string) => {
       const preset = annotationPresets.find((p) => p.id === presetId)
       if (preset) {
-        setTool(preset.tool)
-        setStyle(preset.style)
+        setActiveAnnotationTool(preset.tool)
+        setAnnotationStyle(preset.style)
       }
     },
-    [annotationPresets, setTool, setStyle]
+    [annotationPresets, setActiveAnnotationTool, setAnnotationStyle]
   )
 
   return (
