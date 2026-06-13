@@ -13,6 +13,10 @@ export default function SignaturePanel() {
     selectedSignatureId,
     setSelectedSignatureId,
     setIsPlacingSignature,
+    setSelectedStampId,
+    setIsPlacingStamp,
+    setIsAnnotating,
+    setIsDirectSigning,
   } = useWorkspaceStore()
 
   const [showCanvas, setShowCanvas] = useState(false)
@@ -24,6 +28,10 @@ export default function SignaturePanel() {
       setSelectedSignatureId(null)
       setIsPlacingSignature(false)
     } else {
+      setSelectedStampId(null)
+      setIsPlacingStamp(false)
+      setIsAnnotating(false)
+      setIsDirectSigning(false)
       setSelectedSignatureId(id)
       setIsPlacingSignature(true)
     }

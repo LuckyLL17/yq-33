@@ -252,10 +252,18 @@ export default function DirectSignatureOverlay() {
     })
 
     setIsDirectSigning(false)
+    useWorkspaceStore.setState({
+      isPlacingSignature: false,
+      selectedSignatureId: null,
+    })
   }
 
   const handleClose = () => {
     setIsDirectSigning(false)
+    useWorkspaceStore.setState({
+      isPlacingSignature: false,
+      selectedSignatureId: null,
+    })
   }
 
   return (

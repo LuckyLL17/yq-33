@@ -13,6 +13,10 @@ export default function StampPanel() {
     selectedStampId,
     setSelectedStampId,
     setIsPlacingStamp,
+    setSelectedSignatureId,
+    setIsPlacingSignature,
+    setIsAnnotating,
+    setIsDirectSigning,
   } = useWorkspaceStore()
 
   const [showCanvas, setShowCanvas] = useState(false)
@@ -25,6 +29,10 @@ export default function StampPanel() {
       setSelectedStampId(null)
       setIsPlacingStamp(false)
     } else {
+      setSelectedSignatureId(null)
+      setIsPlacingSignature(false)
+      setIsAnnotating(false)
+      setIsDirectSigning(false)
       setSelectedStampId(id)
       setIsPlacingStamp(true)
     }

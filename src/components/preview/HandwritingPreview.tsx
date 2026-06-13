@@ -115,12 +115,22 @@ const HandwritingPreview = forwardRef<HTMLCanvasElement, HandwritingPreviewProps
     }, [setIsPlacingSignature, setSelectedSignatureId, setIsPlacingStamp, setSelectedStampId])
 
     const handleDirectSign = useCallback(() => {
+      setIsPlacingSignature(false)
+      setSelectedSignatureId(null)
+      setIsPlacingStamp(false)
+      setSelectedStampId(null)
+      setIsAnnotating(false)
       setIsDirectSigning(true)
-    }, [setIsDirectSigning])
+    }, [setIsDirectSigning, setIsPlacingSignature, setSelectedSignatureId, setIsPlacingStamp, setSelectedStampId, setIsAnnotating])
 
     const handleStartAnnotation = useCallback(() => {
+      setIsPlacingSignature(false)
+      setSelectedSignatureId(null)
+      setIsPlacingStamp(false)
+      setSelectedStampId(null)
+      setIsDirectSigning(false)
       setIsAnnotating(true)
-    }, [setIsAnnotating])
+    }, [setIsAnnotating, setIsPlacingSignature, setSelectedSignatureId, setIsPlacingStamp, setSelectedStampId, setIsDirectSigning])
 
     return (
       <div className={cn('flex-1 min-h-0 flex flex-col', 'p-4 gap-3')}>
