@@ -1,7 +1,5 @@
 import type { FilterType } from '@/types'
-
-const PAGE_WIDTH = 794
-const PAGE_HEIGHT = 1123
+import { hexToRgb } from './canvasUtils'
 
 export function applyFilter(
   ctx: CanvasRenderingContext2D,
@@ -48,16 +46,6 @@ export function applyFilter(
   }
 
   ctx.putImageData(imageData, 0, 0)
-}
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const h = hex.replace('#', '')
-  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h
-  return {
-    r: parseInt(full.slice(0, 2), 16),
-    g: parseInt(full.slice(2, 4), 16),
-    b: parseInt(full.slice(4, 6), 16),
-  }
 }
 
 function isInkPixel(r: number, g: number, b: number, ink: { r: number; g: number; b: number }): boolean {

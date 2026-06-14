@@ -3,6 +3,7 @@ import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { paperPresets } from '@/constants/presets'
 import { builtInFonts, buildFontStack, getFontById } from '@/utils/fontPresets'
 import { loadFont } from '@/utils/fontLoader'
+import { seededRandom, hexToRgb, PAGE_WIDTH, PAGE_HEIGHT, DPR, resolvePaperType } from '@/utils/canvasUtils'
 import type { PaperType } from '@/types'
 import { drawSignaturesForPage, loadSignatureImages } from '@/utils/signatureRenderer'
 import { drawStampsForPage, loadStampImages } from '@/utils/stampRenderer'
@@ -12,19 +13,6 @@ import { applyFilter } from '@/utils/filterEffects'
 import { decorationPresets } from '@/constants/decorationPresets'
 import { layoutMarkdown, paginateMarkdownLines, drawMarkdownPage } from '@/utils/markdown'
 import type { RenderLine } from '@/utils/markdown'
-
-const PAGE_WIDTH = 794
-const PAGE_HEIGHT = 1123
-const DPR = 2
-
-export function seededRandom(seed: number): () => number {
-  let s = seed % 2147483647
-  if (s <= 0) s += 2147483646
-  return function () {
-    s = (s * 16807) % 2147483647
-    return (s - 1) / 2147483646
-  }
-}
 
 function buildFontFamily(selectedFontId: string, customFonts: any[] = []): string {
   const font = getFontById(selectedFontId, customFonts)
@@ -235,16 +223,6 @@ function paginate(
   if (cur.length > 0) pages.push(cur)
   if (pages.length === 0) pages.push([])
   return pages
-}
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const h = hex.replace('#', '')
-  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h
-  return {
-    r: parseInt(full.slice(0, 2), 16),
-    g: parseInt(full.slice(2, 4), 16),
-    b: parseInt(full.slice(4, 6), 16),
-  }
 }
 
 interface CharDrawInfo {
@@ -463,10 +441,6 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
 
   const renderState: RenderState = useMemo(() => {
     const paper = paperPresets.find((p) => p.id === selectedPaperId) || paperPresets[0]
-    const typeMap: Record<string, PaperType> = {
-      blank: 'blank', line: 'line', grid: 'grid', squared: 'grid',
-      notebook: 'line', kraft: 'kraft', newspaper: 'blank', dotted: 'dotted',
-    }
     return {
       fontFamily: buildFontFamily(selectedFontId, customFonts),
       fontSize,
@@ -498,7 +472,7 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
       paperBgColor: paperBgColor || paper.bgColor,
       paperLineColor: paperLineColor || paper.lineColor,
       paperLineSpacing: paperLineSpacing || paper.lineSpacing,
-      paperType: typeMap[selectedPaperId] || 'line',
+      paperType: resolvePaperType(selectedPaperId),
       showMargin: showBindingLine || paper.hasMargin,
       markdownEnabled,
     }

@@ -4,9 +4,7 @@ import { cn } from '@/lib/utils'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { decorationPresets } from '@/constants/decorationPresets'
 import type { DecorationPlacement } from '@/types'
-
-const PAGE_WIDTH = 794
-const PAGE_HEIGHT = 1123
+import { PAGE_WIDTH, PAGE_HEIGHT } from '@/utils/canvasUtils'
 
 type InteractionMode = 'none' | 'drag' | 'resize' | 'rotate'
 

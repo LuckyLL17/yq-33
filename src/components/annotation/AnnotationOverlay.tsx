@@ -3,10 +3,7 @@ import { cn } from '@/lib/utils'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import type { AnnotationStyle } from '@/store/useWorkspaceStore'
 import AnnotationToolbar from './AnnotationToolbar'
-
-const PAGE_WIDTH = 794
-const PAGE_HEIGHT = 1123
-const DPR = 2
+import { PAGE_WIDTH, PAGE_HEIGHT, DPR } from '@/utils/canvasUtils'
 
 type DrawState = {
   isDrawing: boolean

@@ -1,23 +1,5 @@
 import type { Stamp, StampConfig, StampShape, StampPlacement } from '@/store/useWorkspaceStore'
-
-function seededRandom(seed: number): () => number {
-  let s = seed % 2147483647
-  if (s <= 0) s += 2147483646
-  return function () {
-    s = (s * 16807) % 2147483647
-    return (s - 1) / 2147483646
-  }
-}
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const h = hex.replace('#', '')
-  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h
-  return {
-    r: parseInt(full.slice(0, 2), 16),
-    g: parseInt(full.slice(2, 4), 16),
-    b: parseInt(full.slice(4, 6), 16),
-  }
-}
+import { seededRandom, hexToRgb } from './canvasUtils'
 
 function drawStar(
   ctx: CanvasRenderingContext2D,

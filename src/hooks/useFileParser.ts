@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import mammoth from 'mammoth';
+import { removeBOM } from '@/utils/textUtils';
 
 export async function parseFile(file: File): Promise<{ text: string; fileName: string }> {
   const ext = file.name.split('.').pop()?.toLowerCase();
@@ -25,10 +26,7 @@ async function parseTxt(file: File, fileName: string): Promise<{ text: string; f
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      let text = e.target?.result as string;
-      if (text.charCodeAt(0) === 0xfeff) {
-        text = text.slice(1);
-      }
+      const text = removeBOM(e.target?.result as string);
       resolve({ text, fileName });
     };
     reader.onerror = () => {

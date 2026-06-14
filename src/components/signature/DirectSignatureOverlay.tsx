@@ -4,10 +4,7 @@ import { cn } from '@/lib/utils'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { paperPresets } from '@/constants/presets'
 import { getSignatureBounds, extractSignatureDataUrl } from '@/utils/signatureRenderer'
-
-const PAGE_WIDTH = 794
-const PAGE_HEIGHT = 1123
-const DPR = 2
+import { PAGE_WIDTH, PAGE_HEIGHT, DPR, resolvePaperType } from '@/utils/canvasUtils'
 
 export default function DirectSignatureOverlay() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -25,15 +22,11 @@ export default function DirectSignatureOverlay() {
 
   const getPaperInfo = useCallback(() => {
     const paper = paperPresets.find((p) => p.id === selectedPaperId) || paperPresets[0]
-    const typeMap: Record<string, string> = {
-      blank: 'blank', line: 'line', grid: 'grid', squared: 'grid',
-      notebook: 'line', kraft: 'kraft', newspaper: 'blank', dotted: 'dotted',
-    }
     return {
       paperBgColor: paperBgColor || paper.bgColor,
       paperLineColor: paperLineColor || paper.lineColor,
       paperLineSpacing: paperLineSpacing || paper.lineSpacing,
-      paperType: typeMap[selectedPaperId] || 'line',
+      paperType: resolvePaperType(selectedPaperId),
     }
   }, [selectedPaperId, paperBgColor, paperLineColor, paperLineSpacing])
 

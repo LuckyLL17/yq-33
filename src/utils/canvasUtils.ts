@@ -1,4 +1,8 @@
-import type { PaperConfig, FontConfig } from '@/types';
+import type { PaperConfig, FontConfig, PaperType } from '@/types';
+
+export const PAGE_WIDTH = 794;
+export const PAGE_HEIGHT = 1123;
+export const DPR = 2;
 
 export function seededRandom(seed: number): () => number {
   let s = seed % 2147483647;
@@ -7,6 +11,30 @@ export function seededRandom(seed: number): () => number {
     s = (s * 16807) % 2147483647;
     return (s - 1) / 2147483646;
   };
+}
+
+export function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  return {
+    r: parseInt(full.slice(0, 2), 16),
+    g: parseInt(full.slice(2, 4), 16),
+    b: parseInt(full.slice(4, 6), 16),
+  };
+}
+
+export function resolvePaperType(paperId: string): PaperType {
+  const typeMap: Record<string, PaperType> = {
+    blank: 'blank',
+    line: 'line',
+    grid: 'grid',
+    squared: 'grid',
+    notebook: 'line',
+    kraft: 'kraft',
+    newspaper: 'blank',
+    dotted: 'dotted',
+  };
+  return typeMap[paperId] || 'line';
 }
 
 export function drawPaperBackground(

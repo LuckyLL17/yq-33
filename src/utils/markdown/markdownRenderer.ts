@@ -1,7 +1,7 @@
 import type { MarkdownBlock, MarkdownTextSegment, MarkdownStyle, MarkdownElementType } from './types';
 import { parseMarkdown } from './parser';
 import { defaultMarkdownStyles } from './styles';
-import { seededRandom } from '../canvasUtils';
+import { seededRandom, hexToRgb } from '../canvasUtils';
 
 interface RenderLine {
   segments: RenderSegment[];
@@ -491,12 +491,3 @@ export function drawMarkdownPage(
   ctx.restore();
 }
 
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const h = hex.replace('#', '');
-  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
-  return {
-    r: parseInt(full.slice(0, 2), 16),
-    g: parseInt(full.slice(2, 4), 16),
-    b: parseInt(full.slice(4, 6), 16),
-  };
-}
