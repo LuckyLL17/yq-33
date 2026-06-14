@@ -5,14 +5,10 @@ import type {
   DecorationPlacement,
   FilterType,
   FilterPreset,
+  FontPreset,
+  FontCategory,
+  FontSource,
 } from '@/types'
-
-export interface FontPreset {
-  id: string
-  name: string
-  fontFamily: string
-  preview: string
-}
 
 export interface PaperPreset {
   id: string
@@ -196,6 +192,10 @@ interface WorkspaceState {
   activeFilter: FilterType
   filterIntensity: number
   filterPresets: FilterPreset[]
+  customFonts: FontPreset[]
+  fontSearchQuery: string
+  fontCategoryFilter: FontCategory | 'all'
+  fontSourceFilter: FontSource | 'all'
 
   setText: (text: string, fileName?: string) => void
   clearText: () => void
@@ -259,13 +259,19 @@ interface WorkspaceState {
   clearAllDecorations: () => void
   setActiveFilter: (filter: FilterType) => void
   setFilterIntensity: (intensity: number) => void
+  addCustomFont: (font: Omit<FontPreset, 'id' | 'isBuiltIn' | 'source' | 'createdAt'> & { source?: FontSource }) => void
+  deleteCustomFont: (id: string) => void
+  updateCustomFont: (id: string, updates: Partial<FontPreset>) => void
+  setFontSearchQuery: (query: string) => void
+  setFontCategoryFilter: (category: FontCategory | 'all') => void
+  setFontSourceFilter: (source: FontSource | 'all') => void
 }
 
 const defaultState = {
   rawText: '',
   fileName: '',
   activeTab: 'font' as const,
-  selectedFontId: 'mashanzheng',
+  selectedFontId: 'ma-shan-zheng',
   fontSize: 24,
   inkColor: '#3a2e1f',
   jitterAmount: 0.55,
@@ -361,6 +367,10 @@ const defaultState = {
     { id: 'crayon', name: '蜡笔涂鸦', description: '蜡笔的粗糙质感', intensity: 0.6 },
     { id: 'marker', name: '马克笔', description: '马克笔的鲜艳笔触', intensity: 0.6 },
   ] as FilterPreset[],
+  customFonts: [] as FontPreset[],
+  fontSearchQuery: '',
+  fontCategoryFilter: 'all' as FontCategory | 'all',
+  fontSourceFilter: 'all' as FontSource | 'all',
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
@@ -693,4 +703,40 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
 
   setFilterIntensity: (intensity) =>
     set({ filterIntensity: Math.max(0, Math.min(1, intensity)) }),
+
+  addCustomFont: (font) =>
+    set((state) => ({
+      customFonts: [
+        ...state.customFonts,
+        {
+          ...font,
+          id: `custom_font_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          isBuiltIn: false,
+          source: font.source || 'custom',
+          createdAt: Date.now(),
+        } as FontPreset,
+      ],
+    })),
+
+  deleteCustomFont: (id) =>
+    set((state) => ({
+      customFonts: state.customFonts.filter((f) => f.id !== id),
+      selectedFontId: state.selectedFontId === id ? 'ma-shan-zheng' : state.selectedFontId,
+    })),
+
+  updateCustomFont: (id, updates) =>
+    set((state) => ({
+      customFonts: state.customFonts.map((f) =>
+        f.id === id ? { ...f, ...updates } : f
+      ),
+    })),
+
+  setFontSearchQuery: (query) =>
+    set({ fontSearchQuery: query }),
+
+  setFontCategoryFilter: (category) =>
+    set({ fontCategoryFilter: category }),
+
+  setFontSourceFilter: (source) =>
+    set({ fontSourceFilter: source }),
 }))

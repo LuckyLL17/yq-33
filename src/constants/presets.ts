@@ -1,4 +1,7 @@
-import type { FontPreset, PaperPreset } from '@/store/useWorkspaceStore'
+import type { FontPreset, PaperPreset } from '@/types'
+import { builtInFonts } from '@/utils/fontPresets'
+
+export const fontPresets: FontPreset[] = builtInFonts
 
 export interface TextTemplate {
   id: string
@@ -493,57 +496,6 @@ export const templateCategories = [
   { id: 'emotion', name: '情感', iconName: 'Heart' },
   { id: 'other', name: '其他', iconName: 'MoreHorizontal' },
 ] as const
-
-export const fontPresets: FontPreset[] = [
-  {
-    id: 'mashanzheng',
-    name: '马善政楷',
-    fontFamily: '"Ma Shan Zheng", "楷体", "KaiTi", cursive',
-    preview: '手写春风十里',
-  },
-  {
-    id: 'zhimangxing',
-    name: '植芒行书',
-    fontFamily: '"Zhi Mang Xing", "华文行楷", cursive',
-    preview: '行云流水',
-  },
-  {
-    id: 'liujianmaocao',
-    name: '刘建毛草',
-    fontFamily: '"Liu Jian Mao Cao", "草书", cursive',
-    preview: '草书意',
-  },
-  {
-    id: 'longcang',
-    name: '龙藏毛笔',
-    fontFamily: '"Long Cang", "行楷", cursive',
-    preview: '龙藏笔意',
-  },
-  {
-    id: 'chenyuluoyan',
-    name: '沉鱼落雁',
-    fontFamily: '"Chen Yu Luo Yan", "楷体", cursive',
-    preview: '婉约笔迹',
-  },
-  {
-    id: 'caveat',
-    name: '英文速写',
-    fontFamily: '"Caveat", "Patrick Hand", cursive',
-    preview: 'Handwritten',
-  },
-  {
-    id: 'dancing',
-    name: '圆体手写',
-    fontFamily: '"Dancing Script", cursive',
-    preview: 'Hello!',
-  },
-  {
-    id: 'homemade',
-    name: '苹果手书',
-    fontFamily: '"Homemade Apple", cursive',
-    preview: 'Sincerely',
-  },
-]
 
 export const paperPresets: PaperPreset[] = [
   {

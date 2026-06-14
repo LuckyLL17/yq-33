@@ -33,12 +33,22 @@ export interface FilterPreset {
   intensity: number;
 }
 
+export type FontSource = 'google' | 'custom' | 'system';
+export type FontCategory = 'cn' | 'en' | 'symbol';
+
 export interface FontPreset {
   id: string;
   name: string;
   family: string;
   previewText: string;
-  category: 'cn' | 'en';
+  category: FontCategory;
+  source: FontSource;
+  isBuiltIn: boolean;
+  fontUrl?: string;
+  fontWeight?: number;
+  fontStyle?: string;
+  fallbackFonts?: string;
+  createdAt?: number;
 }
 
 export interface PaperPreset {

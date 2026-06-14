@@ -1,6 +1,8 @@
 import { useRef, useEffect, useCallback, useMemo, useState } from 'react'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
-import { fontPresets, paperPresets } from '@/constants/presets'
+import { paperPresets } from '@/constants/presets'
+import { builtInFonts, buildFontStack, getFontById } from '@/utils/fontPresets'
+import { loadFont } from '@/utils/fontLoader'
 import type { PaperType } from '@/types'
 import { drawSignaturesForPage, loadSignatureImages } from '@/utils/signatureRenderer'
 import { drawStampsForPage, loadStampImages } from '@/utils/stampRenderer'
@@ -22,9 +24,12 @@ export function seededRandom(seed: number): () => number {
   }
 }
 
-function buildFontFamily(selectedFontId: string): string {
-  const preset = fontPresets.find((f) => f.id === selectedFontId)
-  return preset?.fontFamily || '"Ma Shan Zheng", "KaiTi", cursive, serif'
+function buildFontFamily(selectedFontId: string, customFonts: any[] = []): string {
+  const font = getFontById(selectedFontId, customFonts)
+  if (font) {
+    return buildFontStack(font)
+  }
+  return '"Ma Shan Zheng", "KaiTi", cursive, serif'
 }
 
 interface RenderState {
@@ -394,6 +399,7 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
 
   const rawText = useWorkspaceStore((s) => s.rawText)
   const selectedFontId = useWorkspaceStore((s) => s.selectedFontId)
+  const customFonts = useWorkspaceStore((s) => s.customFonts)
   const fontSize = useWorkspaceStore((s) => s.fontSize)
   const inkColor = useWorkspaceStore((s) => s.inkColor)
   const jitterAmount = useWorkspaceStore((s) => s.jitterAmount)
@@ -419,7 +425,7 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
       notebook: 'line', kraft: 'kraft', newspaper: 'blank', dotted: 'dotted',
     }
     return {
-      fontFamily: buildFontFamily(selectedFontId),
+      fontFamily: buildFontFamily(selectedFontId, customFonts),
       fontSize,
       inkColor,
       jitter: jitterAmount,
@@ -439,10 +445,17 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
       showMargin: showBindingLine || paper.hasMargin,
     }
   }, [
-    selectedFontId, fontSize, inkColor, jitterAmount, letterSpacing, lineHeight,
+    selectedFontId, customFonts, fontSize, inkColor, jitterAmount, letterSpacing, lineHeight,
     paragraphSpacing, marginTop, marginRight, marginBottom, marginLeft,
     selectedPaperId, paperBgColor, paperLineColor, paperLineSpacing, showBindingLine,
   ])
+
+  useEffect(() => {
+    const font = getFontById(selectedFontId, customFonts)
+    if (font) {
+      loadFont(font)
+    }
+  }, [selectedFontId, customFonts])
 
   const computePages = useCallback((text: string, rs: RenderState) => {
     const maxWidth = rs.pageWidth - rs.marginLeft - rs.marginRight
