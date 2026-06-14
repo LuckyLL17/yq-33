@@ -24,7 +24,17 @@ export interface DecorationPlacement {
   opacity: number;
 }
 
-export type FilterType = 'none' | 'inkBleed' | 'pencilSketch' | 'penStroke' | 'brushStroke' | 'watercolor' | 'carbonCopy' | 'fountainPen' | 'crayon' | 'marker';
+export type FilterType =
+  | 'none'
+  | 'inkBleed'
+  | 'pencilSketch'
+  | 'penStroke'
+  | 'brushStroke'
+  | 'watercolor'
+  | 'carbonCopy'
+  | 'fountainPen'
+  | 'crayon'
+  | 'marker';
 
 export interface FilterPreset {
   id: FilterType;
@@ -59,30 +69,32 @@ export interface PaperPreset {
   lineColor: string;
   lineSpacing: number;
   showMargin: boolean;
+  hasLines: boolean;
+  hasMargin: boolean;
 }
 
 export interface JitterSettings {
-  positionX: number
-  positionY: number
-  size: number
-  rotation: number
-  baseline: number
-  inkDensity: number
-  inkColor: number
-  spacing: number
-  lineDrift: number
-  lineTilt: number
-  halo: number
-  dryBrush: number
+  positionX: number;
+  positionY: number;
+  size: number;
+  rotation: number;
+  baseline: number;
+  inkDensity: number;
+  inkColor: number;
+  spacing: number;
+  lineDrift: number;
+  lineTilt: number;
+  halo: number;
+  dryBrush: number;
 }
 
 export interface HandwritingFont {
-  family: string
-  size: number
-  color: string
-  weight: number
-  jitter: number
-  jitterSettings: JitterSettings
+  family: string;
+  size: number;
+  color: string;
+  weight: number;
+  jitter: number;
+  jitterSettings: JitterSettings;
 }
 
 export interface HandwritingPaper {

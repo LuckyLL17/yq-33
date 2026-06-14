@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo } from 'react';
 import {
   Sticker,
   Flower2,
@@ -10,11 +10,11 @@ import {
   TextCursor,
   Check,
   X,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useWorkspaceStore } from '@/store/useWorkspaceStore'
-import { decorationPresets, decorationCategories } from '@/constants/decorationPresets'
-import type { DecorationCategory } from '@/types'
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { decorationPresets, decorationCategories } from '@/constants/decorationPresets';
+import type { DecorationCategory } from '@/types';
 
 const iconMap: Record<DecorationCategory, typeof Sticker> = {
   tape: TextCursor,
@@ -23,7 +23,7 @@ const iconMap: Record<DecorationCategory, typeof Sticker> = {
   stamp: Stamp,
   corner: CornerDownRight,
   ribbon: Gift,
-}
+};
 
 export default function DecorationPanel() {
   const {
@@ -42,33 +42,33 @@ export default function DecorationPanel() {
     currentPage,
     clearPageDecorations,
     clearAllDecorations,
-  } = useWorkspaceStore()
+  } = useWorkspaceStore();
 
   const filteredDecorations = useMemo(
     () => decorationPresets.filter((d) => d.category === decorationCategory),
-    [decorationCategory]
-  )
+    [decorationCategory],
+  );
 
   const pageDecorationCount = useMemo(
     () => decorationPlacements.filter((d) => d.pageIndex === currentPage - 1).length,
-    [decorationPlacements, currentPage]
-  )
+    [decorationPlacements, currentPage],
+  );
 
   const handleSelectDecoration = (id: string) => {
     if (selectedDecorationId === id) {
-      setSelectedDecorationId(null)
-      setIsPlacingDecoration(false)
+      setSelectedDecorationId(null);
+      setIsPlacingDecoration(false);
     } else {
-      setSelectedSignatureId(null)
-      setIsPlacingSignature(false)
-      setSelectedStampId(null)
-      setIsPlacingStamp(false)
-      setIsAnnotating(false)
-      setIsDirectSigning(false)
-      setSelectedDecorationId(id)
-      setIsPlacingDecoration(true)
+      setSelectedSignatureId(null);
+      setIsPlacingSignature(false);
+      setSelectedStampId(null);
+      setIsPlacingStamp(false);
+      setIsAnnotating(false);
+      setIsDirectSigning(false);
+      setSelectedDecorationId(id);
+      setIsPlacingDecoration(true);
     }
-  }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -79,8 +79,8 @@ export default function DecorationPanel() {
         </h3>
         <div className="flex flex-wrap gap-1.5">
           {decorationCategories.map((cat) => {
-            const Icon = iconMap[cat.id]
-            const isActive = decorationCategory === cat.id
+            const Icon = iconMap[cat.id];
+            const isActive = decorationCategory === cat.id;
             return (
               <button
                 key={cat.id}
@@ -91,13 +91,13 @@ export default function DecorationPanel() {
                   'transition-all duration-200',
                   isActive
                     ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-sm'
-                    : 'bg-stone-100 text-stone-600 hover:bg-amber-50 hover:text-amber-700'
+                    : 'bg-stone-100 text-stone-600 hover:bg-amber-50 hover:text-amber-700',
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
                 {cat.name}
               </button>
-            )
+            );
           })}
         </div>
       </div>
@@ -105,7 +105,7 @@ export default function DecorationPanel() {
       <div className="flex-1 overflow-y-auto p-4">
         <div className="grid grid-cols-3 gap-2.5">
           {filteredDecorations.map((deco) => {
-            const isSelected = selectedDecorationId === deco.id
+            const isSelected = selectedDecorationId === deco.id;
             return (
               <button
                 key={deco.id}
@@ -118,7 +118,7 @@ export default function DecorationPanel() {
                   'flex items-center justify-center',
                   isSelected
                     ? 'border-amber-500 bg-amber-50/80 shadow-sm shadow-amber-100'
-                    : 'border-stone-200 bg-white hover:border-amber-300'
+                    : 'border-stone-200 bg-white hover:border-amber-300',
                 )}
                 title={deco.name}
               >
@@ -129,7 +129,7 @@ export default function DecorationPanel() {
                       'w-4 h-4 rounded-full',
                       'bg-gradient-to-br from-amber-500 to-orange-600',
                       'flex items-center justify-center',
-                      'shadow-sm'
+                      'shadow-sm',
                     )}
                   >
                     <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
@@ -140,10 +140,10 @@ export default function DecorationPanel() {
                   dangerouslySetInnerHTML={{ __html: deco.svgContent }}
                 />
               </button>
-            )
+            );
           })}
         </div>
-        {isSelectedDecorationHint()}
+        <SelectedDecorationHint />
       </div>
 
       <div className="p-4 border-t border-stone-200">
@@ -151,9 +151,7 @@ export default function DecorationPanel() {
           <span className="text-xs font-medium text-stone-500">
             本页装饰：<span className="text-amber-700 font-bold">{pageDecorationCount}</span> 个
           </span>
-          <span className="text-xs text-stone-400">
-            共 {decorationPlacements.length} 个
-          </span>
+          <span className="text-xs text-stone-400">共 {decorationPlacements.length} 个</span>
         </div>
         <div className="flex gap-2">
           <button
@@ -165,7 +163,7 @@ export default function DecorationPanel() {
               'transition-all duration-200',
               pageDecorationCount === 0
                 ? 'bg-stone-100 text-stone-400 cursor-not-allowed'
-                : 'bg-stone-100 text-stone-600 hover:bg-rose-50 hover:text-rose-700'
+                : 'bg-stone-100 text-stone-600 hover:bg-rose-50 hover:text-rose-700',
             )}
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -180,7 +178,7 @@ export default function DecorationPanel() {
               'transition-all duration-200',
               decorationPlacements.length === 0
                 ? 'bg-stone-100 text-stone-400 cursor-not-allowed'
-                : 'bg-stone-100 text-stone-600 hover:bg-rose-50 hover:text-rose-700'
+                : 'bg-stone-100 text-stone-600 hover:bg-rose-50 hover:text-rose-700',
             )}
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -189,12 +187,12 @@ export default function DecorationPanel() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-function isSelectedDecorationHint() {
-  const { selectedDecorationId, isPlacingDecoration } = useWorkspaceStore()
-  if (!selectedDecorationId || !isPlacingDecoration) return null
+function SelectedDecorationHint() {
+  const { selectedDecorationId, isPlacingDecoration } = useWorkspaceStore();
+  if (!selectedDecorationId || !isPlacingDecoration) return null;
 
   return (
     <div className="mt-3 col-span-3">
@@ -202,15 +200,16 @@ function isSelectedDecorationHint() {
         className={cn(
           'px-3 py-2 rounded-lg',
           'bg-amber-50 border border-amber-200',
-          'flex items-center justify-between'
+          'flex items-center justify-between',
         )}
       >
         <span className="text-xs font-medium text-amber-800">点击信纸放置装饰</span>
         <button
           onClick={() => {
-            const { setSelectedDecorationId, setIsPlacingDecoration } = useWorkspaceStore.getState()
-            setSelectedDecorationId(null)
-            setIsPlacingDecoration(false)
+            const { setSelectedDecorationId, setIsPlacingDecoration } =
+              useWorkspaceStore.getState();
+            setSelectedDecorationId(null);
+            setIsPlacingDecoration(false);
           }}
           className="p-0.5 rounded text-amber-600 hover:bg-amber-100 transition-colors"
         >
@@ -218,5 +217,5 @@ function isSelectedDecorationHint() {
         </button>
       </div>
     </div>
-  )
+  );
 }

@@ -1,5 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Workbench from "@/pages/Workbench";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Workbench from '@/pages/Workbench';
 
 export default function App() {
   return (

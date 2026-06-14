@@ -3,7 +3,7 @@ import { parseMarkdown } from './parser';
 import { defaultMarkdownStyles } from './styles';
 import { seededRandom, hexToRgb } from '../canvasUtils';
 
-interface RenderLine {
+export interface RenderLine {
   segments: RenderSegment[];
   y: number;
   height: number;
@@ -26,7 +26,7 @@ interface RenderLine {
   listMarkerWidth?: number;
 }
 
-interface RenderSegment {
+export interface RenderSegment {
   text: string;
   type: MarkdownTextSegment['type'];
   style: MarkdownStyle;
@@ -35,7 +35,7 @@ interface RenderSegment {
   isStrikethrough?: boolean;
 }
 
-interface MarkdownRenderOptions {
+export interface MarkdownRenderOptions {
   maxWidth: number;
   marginTop: number;
   marginBottom: number;
@@ -48,6 +48,7 @@ interface MarkdownRenderOptions {
   letterSpacing: number;
   lineHeight: number;
   paragraphSpacing: number;
+  baseStyles?: Partial<Record<MarkdownElementType, Partial<MarkdownStyle>>>;
   styles?: Partial<Record<MarkdownElementType, Partial<MarkdownStyle>>>;
 }
 

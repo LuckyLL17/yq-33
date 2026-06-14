@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-ssr
+build
+coverage
+.vscode
+.idea
+*.local
+stats.html
+*.min.js
+*.min.css
