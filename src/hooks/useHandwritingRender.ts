@@ -10,6 +10,8 @@ import { drawAnnotationsForPage } from '@/utils/annotationRenderer'
 import { drawDecorationsForPage, loadDecorationImages, type DecorationImageCache } from '@/utils/decorationRenderer'
 import { applyFilter } from '@/utils/filterEffects'
 import { decorationPresets } from '@/constants/decorationPresets'
+import { layoutMarkdown, paginateMarkdownLines, drawMarkdownPage } from '@/utils/markdown'
+import type { RenderLine } from '@/utils/markdown'
 
 const PAGE_WIDTH = 794
 const PAGE_HEIGHT = 1123
@@ -67,6 +69,7 @@ interface RenderState {
   paperLineSpacing: number
   paperType: PaperType
   showMargin: boolean
+  markdownEnabled: boolean
 }
 
 function drawPaper(ctx: CanvasRenderingContext2D, rs: RenderState) {
@@ -454,6 +457,7 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
   const paperLineColor = useWorkspaceStore((s) => s.paperLineColor)
   const paperLineSpacing = useWorkspaceStore((s) => s.paperLineSpacing)
   const showBindingLine = useWorkspaceStore((s) => s.showBindingLine)
+  const markdownEnabled = useWorkspaceStore((s) => s.markdownEnabled)
   const currentPage = useWorkspaceStore((s) => s.currentPage)
   const setTotalPages = useWorkspaceStore((s) => s.setTotalPages)
 
@@ -496,6 +500,7 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
       paperLineSpacing: paperLineSpacing || paper.lineSpacing,
       paperType: typeMap[selectedPaperId] || 'line',
       showMargin: showBindingLine || paper.hasMargin,
+      markdownEnabled,
     }
   }, [
     selectedFontId, customFonts, fontSize, inkColor, jitterAmount,
@@ -504,6 +509,7 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
     jitterHalo, jitterDryBrush,
     letterSpacing, lineHeight, paragraphSpacing, marginTop, marginRight, marginBottom, marginLeft,
     selectedPaperId, paperBgColor, paperLineColor, paperLineSpacing, showBindingLine,
+    markdownEnabled,
   ])
 
   useEffect(() => {
@@ -527,10 +533,39 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
     return paginate(lines, availH, linePx, rs.paragraphSpacing)
   }, [])
 
+  const computeMarkdownPages = useCallback((text: string, rs: RenderState): RenderLine[][] => {
+    const maxWidth = rs.pageWidth - rs.marginLeft - rs.marginRight
+    const availH = rs.pageHeight - rs.marginTop - rs.marginBottom
+
+    const off = document.createElement('canvas')
+    const octx = off.getContext('2d')
+
+    const { lines } = layoutMarkdown(text || ' ', {
+      maxWidth,
+      marginTop: rs.marginTop,
+      marginBottom: rs.marginBottom,
+      marginLeft: 0,
+      marginRight: 0,
+      defaultFontFamily: rs.fontFamily,
+      baseFontSize: rs.fontSize,
+      baseInkColor: rs.inkColor,
+      jitterAmount: rs.jitter.amount,
+      letterSpacing: rs.letterSpacing,
+      lineHeight: rs.lineHeight,
+      paragraphSpacing: rs.paragraphSpacing,
+    }, octx)
+
+    return paginateMarkdownLines(lines, rs.pageHeight, rs.marginTop, rs.marginBottom)
+  }, [])
+
   const totalPages = useMemo(() => {
+    if (renderState.markdownEnabled) {
+      const p = computeMarkdownPages(rawText, renderState)
+      return p.length
+    }
     const p = computePages(rawText, renderState)
     return p.length
-  }, [rawText, renderState, computePages])
+  }, [rawText, renderState, computePages, computeMarkdownPages])
 
   useEffect(() => {
     setTotalPages(totalPages)
@@ -608,25 +643,50 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
     canvas.style.height = `${PAGE_HEIGHT}px`
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
 
-    const pages = computePages(rawText || ' ', renderState)
-    const safeIdx = Math.max(0, Math.min(pageIdx, pages.length - 1))
-
     drawPaper(ctx, renderState)
-    drawHandwrittenPage(ctx, pages[safeIdx] || [], renderState, safeIdx)
+
+    if (renderState.markdownEnabled) {
+      const pages = computeMarkdownPages(rawText || ' ', renderState)
+      const safeIdx = Math.max(0, Math.min(pageIdx, pages.length - 1))
+      drawMarkdownPage(ctx, pages[safeIdx] || [], safeIdx, {
+        maxWidth: PAGE_WIDTH - renderState.marginLeft - renderState.marginRight,
+        marginTop: renderState.marginTop,
+        marginBottom: renderState.marginBottom,
+        marginLeft: renderState.marginLeft,
+        marginRight: renderState.marginRight,
+        defaultFontFamily: renderState.fontFamily,
+        baseFontSize: renderState.fontSize,
+        baseInkColor: renderState.inkColor,
+        jitterAmount: renderState.jitter.amount,
+        letterSpacing: renderState.letterSpacing,
+        lineHeight: renderState.lineHeight,
+        paragraphSpacing: renderState.paragraphSpacing,
+      })
+    } else {
+      const pages = computePages(rawText || ' ', renderState)
+      const safeIdx = Math.max(0, Math.min(pageIdx, pages.length - 1))
+      drawHandwrittenPage(ctx, pages[safeIdx] || [], renderState, safeIdx)
+    }
 
     if (activeFilter !== 'none') {
       applyFilter(ctx, activeFilter, filterIntensity, inkColor)
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
     }
 
-    drawSignatures(ctx, safeIdx)
-    drawStamps(ctx, safeIdx)
-    drawAnnotations(ctx, safeIdx)
-    drawDecorations(ctx, safeIdx)
-  }, [rawText, renderState, computePages, drawSignatures, drawStamps, drawAnnotations, drawDecorations, activeFilter, filterIntensity, inkColor])
+    const currentPageIdx = renderState.markdownEnabled 
+      ? Math.max(0, Math.min(pageIdx, computeMarkdownPages(rawText || ' ', renderState).length - 1))
+      : Math.max(0, Math.min(pageIdx, computePages(rawText || ' ', renderState).length - 1))
+
+    drawSignatures(ctx, currentPageIdx)
+    drawStamps(ctx, currentPageIdx)
+    drawAnnotations(ctx, currentPageIdx)
+    drawDecorations(ctx, currentPageIdx)
+  }, [rawText, renderState, computePages, computeMarkdownPages, drawSignatures, drawStamps, drawAnnotations, drawDecorations, activeFilter, filterIntensity, inkColor])
 
   const renderAllCanvases = useCallback(async (): Promise<HTMLCanvasElement[]> => {
-    const pages = computePages(rawText || ' ', renderState)
+    const pages = renderState.markdownEnabled 
+      ? computeMarkdownPages(rawText || ' ', renderState)
+      : computePages(rawText || ' ', renderState)
     const canvases: HTMLCanvasElement[] = []
     const sigImages = await loadSignatureImages(signatures)
     const sImages = await loadStampImages(stamps)
@@ -640,7 +700,25 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
       if (!ctx) continue
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
       drawPaper(ctx, renderState)
-      drawHandwrittenPage(ctx, pages[i] || [], renderState, i)
+      
+      if (renderState.markdownEnabled) {
+        drawMarkdownPage(ctx, pages[i] as RenderLine[] || [], i, {
+          maxWidth: PAGE_WIDTH - renderState.marginLeft - renderState.marginRight,
+          marginTop: renderState.marginTop,
+          marginBottom: renderState.marginBottom,
+          marginLeft: renderState.marginLeft,
+          marginRight: renderState.marginRight,
+          defaultFontFamily: renderState.fontFamily,
+          baseFontSize: renderState.fontSize,
+          baseInkColor: renderState.inkColor,
+          jitterAmount: renderState.jitter.amount,
+          letterSpacing: renderState.letterSpacing,
+          lineHeight: renderState.lineHeight,
+          paragraphSpacing: renderState.paragraphSpacing,
+        })
+      } else {
+        drawHandwrittenPage(ctx, pages[i] as any || [], renderState, i)
+      }
 
       if (activeFilter !== 'none') {
         applyFilter(ctx, activeFilter, filterIntensity, inkColor)
@@ -679,7 +757,7 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
       canvases.push(c)
     }
     return canvases
-  }, [rawText, renderState, computePages, signatures, signaturePlacements, stamps, stampPlacements, annotations, decorationPlacements, activeFilter, filterIntensity, inkColor])
+  }, [rawText, renderState, computePages, computeMarkdownPages, signatures, signaturePlacements, stamps, stampPlacements, annotations, decorationPlacements, activeFilter, filterIntensity, inkColor])
 
   useEffect(() => {
     if (!canvasRef.current) return

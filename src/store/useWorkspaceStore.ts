@@ -150,6 +150,7 @@ export interface StampPlacement {
 interface WorkspaceState {
   rawText: string
   fileName: string
+  markdownEnabled: boolean
   activeTab: 'font' | 'paper' | 'layout' | 'signature' | 'stamp' | 'annotation' | 'decoration' | 'filter'
   selectedFontId: string
   fontSize: number
@@ -242,6 +243,7 @@ interface WorkspaceState {
   setZoomLevel: (zoom: number) => void
   setCurrentPage: (page: number) => void
   setTotalPages: (pages: number) => void
+  setMarkdownEnabled: (enabled: boolean) => void
   resetSettings: () => void
   addSignature: (signature: Omit<Signature, 'id' | 'createdAt'>) => void
   deleteSignature: (id: string) => void
@@ -296,6 +298,7 @@ interface WorkspaceState {
 const defaultState = {
   rawText: '',
   fileName: '',
+  markdownEnabled: true,
   activeTab: 'font' as const,
   selectedFontId: 'ma-shan-zheng',
   fontSize: 24,
@@ -529,6 +532,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
 
   setTotalPages: (pages) =>
     set({ totalPages: Math.max(1, pages) }),
+
+  setMarkdownEnabled: (enabled) =>
+    set({ markdownEnabled: enabled }),
 
   resetSettings: () =>
     set({
