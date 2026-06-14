@@ -61,12 +61,28 @@ export interface PaperPreset {
   showMargin: boolean;
 }
 
+export interface JitterSettings {
+  positionX: number
+  positionY: number
+  size: number
+  rotation: number
+  baseline: number
+  inkDensity: number
+  inkColor: number
+  spacing: number
+  lineDrift: number
+  lineTilt: number
+  halo: number
+  dryBrush: number
+}
+
 export interface HandwritingFont {
-  family: string;
-  size: number;
-  color: string;
-  weight: number;
-  jitter: number;
+  family: string
+  size: number
+  color: string
+  weight: number
+  jitter: number
+  jitterSettings: JitterSettings
 }
 
 export interface HandwritingPaper {

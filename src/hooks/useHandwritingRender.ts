@@ -32,11 +32,27 @@ function buildFontFamily(selectedFontId: string, customFonts: any[] = []): strin
   return '"Ma Shan Zheng", "KaiTi", cursive, serif'
 }
 
+interface JitterParams {
+  amount: number
+  positionX: number
+  positionY: number
+  size: number
+  rotation: number
+  baseline: number
+  inkDensity: number
+  inkColor: number
+  spacing: number
+  lineDrift: number
+  lineTilt: number
+  halo: number
+  dryBrush: number
+}
+
 interface RenderState {
   fontFamily: string
   fontSize: number
   inkColor: string
-  jitter: number
+  jitter: JitterParams
   letterSpacing: number
   lineHeight: number
   paragraphSpacing: number
@@ -267,7 +283,7 @@ function drawHandwrittenPage(
 
   const linePx = fontSize * lineHeight
   const ink = hexToRgb(inkColor)
-  const j = Math.max(0.3, jitter)
+  const jAmount = Math.max(0.01, jitter.amount)
 
   ctx.save()
   ctx.textBaseline = 'alphabetic'
@@ -283,8 +299,8 @@ function drawHandwrittenPage(
     }
 
     const lineRand = seededRandom(baseSeed + li * 9973)
-    const lineDriftY = (lineRand() - 0.5) * 2.0 * j * fontSize * 0.25
-    const lineTilt = (lineRand() - 0.5) * 0.008 * j
+    const lineDriftY = (lineRand() - 0.5) * 2.0 * jAmount * jitter.lineDrift * fontSize * 0.3
+    const lineTilt = (lineRand() - 0.5) * 0.008 * jAmount * jitter.lineTilt
 
     const chars: CharDrawInfo[] = []
     let totalW = 0
@@ -298,23 +314,30 @@ function drawHandwrittenPage(
       const r5 = rand()
       const r6 = rand()
       const r7 = rand()
+      const r8 = rand()
 
-      const sizeVar = fontSize * (1 + (r1 - 0.5) * 0.1 * j)
+      const sizeVar = fontSize * (1 + (r1 - 0.5) * 0.12 * jAmount * jitter.size)
 
       ctx.font = `400 ${sizeVar.toFixed(1)}px ${fontFamily}`
       const cw = ctx.measureText(line.text[ci]).width
 
-      const dx = (r2 - 0.5) * 2.5 * j * fontSize * 0.18
-      const dy = lineDriftY + (r3 - 0.5) * 2.0 * j * fontSize * 0.2
-      const rot = lineTilt + (r4 - 0.5) * 0.06 * j
+      const dx = (r2 - 0.5) * 2.5 * jAmount * jitter.positionX * fontSize * 0.2
+      const baselineOffset = (r3 - 0.5) * 2.0 * jAmount * jitter.baseline * fontSize * 0.15
+      const dy = lineDriftY + (r8 - 0.5) * 2.0 * jAmount * jitter.positionY * fontSize * 0.15 + baselineOffset
+      const rot = lineTilt + (r4 - 0.5) * 0.07 * jAmount * jitter.rotation
 
-      const alpha = 0.78 + r5 * 0.22
-      const inkVar = 1 + (r6 - 0.5) * 0.12
+      const baseAlpha = 0.82
+      const alphaRange = 0.18
+      const alpha = baseAlpha + r5 * alphaRange * jitter.inkDensity * jAmount
+
+      const inkVarBase = 1
+      const inkVarRange = 0.15
+      const inkVar = inkVarBase + (r6 - 0.5) * inkVarRange * jitter.inkColor * jAmount
       const inkR = Math.min(255, Math.max(0, Math.floor(ink.r * inkVar)))
       const inkG = Math.min(255, Math.max(0, Math.floor(ink.g * inkVar)))
       const inkB = Math.min(255, Math.max(0, Math.floor(ink.b * inkVar)))
 
-      const spacingJitter = Math.max(-0.5, (r7 - 0.5) * 1.6 * j)
+      const spacingJitter = Math.max(-0.6, (r7 - 0.5) * 1.8 * jAmount * jitter.spacing)
 
       chars.push({
         ch: line.text[ci],
@@ -328,9 +351,9 @@ function drawHandwrittenPage(
         inkG,
         inkB,
         spacingJitter,
-        haloDx: (r4 - 0.5) * 0.6,
-        haloDy: (r5 - 0.5) * 0.5,
-        drySize: sizeVar * (0.88 + r6 * 0.08),
+        haloDx: (r4 - 0.5) * 0.8 * jitter.halo * jAmount,
+        haloDy: (r5 - 0.5) * 0.6 * jitter.halo * jAmount,
+        drySize: sizeVar * (0.85 + r6 * 0.1 * jitter.dryBrush * jAmount),
       })
 
       totalW += cw
@@ -362,16 +385,20 @@ function drawHandwrittenPage(
       ctx.fillStyle = `rgba(${c.inkR},${c.inkG},${c.inkB},${c.alpha})`
       ctx.fillText(c.ch, -cw / 2, 0)
 
-      if (jitter > 0.25 && c.rot !== 0 && Math.abs(c.dx) > 0.3) {
-        ctx.globalAlpha = 0.07 + c.alpha * 0.08
+      const haloEnabled = jitter.halo > 0.1 && jAmount > 0.1
+      if (haloEnabled && (Math.abs(c.rot) > 0.002 || Math.abs(c.dx) > 0.2)) {
+        const haloAlpha = (0.06 + c.alpha * 0.07) * jitter.halo * jAmount * 2
+        ctx.globalAlpha = Math.min(0.25, Math.max(0.02, haloAlpha))
         ctx.fillText(c.ch, -cw / 2 + c.haloDx, c.haloDy)
         ctx.globalAlpha = 1
       }
 
-      if (jitter > 0.45 && c.alpha < 0.85) {
-        ctx.globalAlpha = 0.18 + c.alpha * 0.15
+      const dryBrushEnabled = jitter.dryBrush > 0.1 && jAmount > 0.15
+      if (dryBrushEnabled && c.alpha < 0.88) {
+        const dryAlpha = (0.15 + c.alpha * 0.12) * jitter.dryBrush * jAmount * 1.5
+        ctx.globalAlpha = Math.min(0.35, Math.max(0.03, dryAlpha))
         ctx.font = `400 ${c.drySize.toFixed(1)}px ${fontFamily}`
-        ctx.fillText(c.ch, -cw / 2 + c.haloDx * 1.5, c.haloDy * 1.2)
+        ctx.fillText(c.ch, -cw / 2 + c.haloDx * 1.8, c.haloDy * 1.4)
         ctx.globalAlpha = 1
       }
 
@@ -403,6 +430,18 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
   const fontSize = useWorkspaceStore((s) => s.fontSize)
   const inkColor = useWorkspaceStore((s) => s.inkColor)
   const jitterAmount = useWorkspaceStore((s) => s.jitterAmount)
+  const jitterPositionX = useWorkspaceStore((s) => s.jitterPositionX)
+  const jitterPositionY = useWorkspaceStore((s) => s.jitterPositionY)
+  const jitterSize = useWorkspaceStore((s) => s.jitterSize)
+  const jitterRotation = useWorkspaceStore((s) => s.jitterRotation)
+  const jitterBaseline = useWorkspaceStore((s) => s.jitterBaseline)
+  const jitterInkDensity = useWorkspaceStore((s) => s.jitterInkDensity)
+  const jitterInkColor = useWorkspaceStore((s) => s.jitterInkColor)
+  const jitterSpacing = useWorkspaceStore((s) => s.jitterSpacing)
+  const jitterLineDrift = useWorkspaceStore((s) => s.jitterLineDrift)
+  const jitterLineTilt = useWorkspaceStore((s) => s.jitterLineTilt)
+  const jitterHalo = useWorkspaceStore((s) => s.jitterHalo)
+  const jitterDryBrush = useWorkspaceStore((s) => s.jitterDryBrush)
   const letterSpacing = useWorkspaceStore((s) => s.letterSpacing)
   const lineHeight = useWorkspaceStore((s) => s.lineHeight)
   const paragraphSpacing = useWorkspaceStore((s) => s.paragraphSpacing)
@@ -428,7 +467,21 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
       fontFamily: buildFontFamily(selectedFontId, customFonts),
       fontSize,
       inkColor,
-      jitter: jitterAmount,
+      jitter: {
+        amount: jitterAmount,
+        positionX: jitterPositionX,
+        positionY: jitterPositionY,
+        size: jitterSize,
+        rotation: jitterRotation,
+        baseline: jitterBaseline,
+        inkDensity: jitterInkDensity,
+        inkColor: jitterInkColor,
+        spacing: jitterSpacing,
+        lineDrift: jitterLineDrift,
+        lineTilt: jitterLineTilt,
+        halo: jitterHalo,
+        dryBrush: jitterDryBrush,
+      },
       letterSpacing,
       lineHeight,
       paragraphSpacing,
@@ -445,8 +498,11 @@ export function useHandwritingRender(options: UseHandwritingRenderOptions = {}) 
       showMargin: showBindingLine || paper.hasMargin,
     }
   }, [
-    selectedFontId, customFonts, fontSize, inkColor, jitterAmount, letterSpacing, lineHeight,
-    paragraphSpacing, marginTop, marginRight, marginBottom, marginLeft,
+    selectedFontId, customFonts, fontSize, inkColor, jitterAmount,
+    jitterPositionX, jitterPositionY, jitterSize, jitterRotation, jitterBaseline,
+    jitterInkDensity, jitterInkColor, jitterSpacing, jitterLineDrift, jitterLineTilt,
+    jitterHalo, jitterDryBrush,
+    letterSpacing, lineHeight, paragraphSpacing, marginTop, marginRight, marginBottom, marginLeft,
     selectedPaperId, paperBgColor, paperLineColor, paperLineSpacing, showBindingLine,
   ])
 

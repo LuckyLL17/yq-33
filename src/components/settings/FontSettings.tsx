@@ -13,12 +13,72 @@ import {
   Languages,
   Settings,
   ChevronDown,
+  ChevronUp,
+  Move,
+  MoveVertical,
+  Maximize2,
+  RotateCw,
+  AlignVerticalJustifyStart,
+  Droplets,
+  Paintbrush,
+  Space,
+  Rows3,
+  SlidersHorizontal,
+  Sparkles,
+  Feather,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useWorkspaceStore } from '@/store/useWorkspaceStore'
 import { builtInFonts, buildFontStack, filterFonts, getAllFonts } from '@/utils/fontPresets'
 import { loadFont } from '@/utils/fontLoader'
 import type { FontPreset, FontCategory, FontSource } from '@/types'
+import type { LucideIcon } from 'lucide-react'
+
+interface JitterSliderProps {
+  label: string
+  value: number
+  onChange: (value: number) => void
+  icon: LucideIcon
+}
+
+function JitterSlider({ label, value, onChange, icon: Icon }: JitterSliderProps) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="w-5 h-5 flex items-center justify-center text-amber-500 flex-shrink-0">
+        <Icon className="w-3.5 h-3.5" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[11px] text-stone-600 font-medium truncate">{label}</span>
+          <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded flex-shrink-0">
+            {(value * 100).toFixed(0)}%
+          </span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className={cn(
+            'w-full h-1.5 rounded-full appearance-none cursor-pointer',
+            'bg-gradient-to-r from-amber-100 to-orange-100',
+            '[&::-webkit-slider-thumb]:appearance-none',
+            '[&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3',
+            '[&::-webkit-slider-thumb]:rounded-full',
+            '[&::-webkit-slider-thumb]:bg-gradient-to-br',
+            '[&::-webkit-slider-thumb]:from-amber-500 [&::-webkit-slider-thumb]:to-orange-600',
+            '[&::-webkit-slider-thumb]:shadow-sm',
+            '[&::-webkit-slider-thumb]:cursor-pointer',
+            '[&::-webkit-slider-thumb]:transition-transform',
+            '[&::-webkit-slider-thumb]:hover:scale-110'
+          )}
+        />
+      </div>
+    </div>
+  )
+}
 
 export default function FontSettings() {
   const {
@@ -30,6 +90,30 @@ export default function FontSettings() {
     setInkColor,
     jitterAmount,
     setJitterAmount,
+    jitterPositionX,
+    setJitterPositionX,
+    jitterPositionY,
+    setJitterPositionY,
+    jitterSize,
+    setJitterSize,
+    jitterRotation,
+    setJitterRotation,
+    jitterBaseline,
+    setJitterBaseline,
+    jitterInkDensity,
+    setJitterInkDensity,
+    jitterInkColor,
+    setJitterInkColor,
+    jitterSpacing,
+    setJitterSpacing,
+    jitterLineDrift,
+    setJitterLineDrift,
+    jitterLineTilt,
+    setJitterLineTilt,
+    jitterHalo,
+    setJitterHalo,
+    jitterDryBrush,
+    setJitterDryBrush,
     customFonts,
     addCustomFont,
     deleteCustomFont,
@@ -40,6 +124,8 @@ export default function FontSettings() {
     fontSourceFilter,
     setFontSourceFilter,
   } = useWorkspaceStore()
+
+  const [showAdvancedJitter, setShowAdvancedJitter] = useState(false)
 
   const [showAddFont, setShowAddFont] = useState(false)
   const [newFontName, setNewFontName] = useState('')
@@ -641,7 +727,239 @@ export default function FontSettings() {
               <span>自然</span>
               <span>潦草</span>
             </div>
+
+            <button
+              onClick={() => setShowAdvancedJitter(!showAdvancedJitter)}
+              className={cn(
+                'w-full mt-3 h-7 rounded-lg text-xs font-medium',
+                'flex items-center justify-center gap-1',
+                'bg-stone-50 text-stone-600 border border-stone-200',
+                'hover:bg-stone-100 hover:text-stone-700',
+                'transition-all duration-200'
+              )}
+            >
+              <SlidersHorizontal className="w-3 h-3" />
+              精细调节
+              {showAdvancedJitter ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              )}
+            </button>
           </div>
+
+          {showAdvancedJitter && (
+            <div className="mt-4 pt-4 border-t border-stone-200 space-y-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span className="text-sm font-bold text-stone-700">精细参数</span>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-stone-500 flex items-center gap-1">
+                  <Move className="w-3 h-3" />
+                  位置偏移
+                </p>
+
+                <JitterSlider
+                  label="横向抖动"
+                  value={jitterPositionX}
+                  onChange={setJitterPositionX}
+                  icon={Move}
+                />
+
+                <JitterSlider
+                  label="纵向抖动"
+                  value={jitterPositionY}
+                  onChange={setJitterPositionY}
+                  icon={MoveVertical}
+                />
+
+                <JitterSlider
+                  label="基线偏移"
+                  value={jitterBaseline}
+                  onChange={setJitterBaseline}
+                  icon={AlignVerticalJustifyStart}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-stone-500 flex items-center gap-1">
+                  <Maximize2 className="w-3 h-3" />
+                  大小与旋转
+                </p>
+
+                <JitterSlider
+                  label="字号变化"
+                  value={jitterSize}
+                  onChange={setJitterSize}
+                  icon={Maximize2}
+                />
+
+                <JitterSlider
+                  label="字符旋转"
+                  value={jitterRotation}
+                  onChange={setJitterRotation}
+                  icon={RotateCw}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-stone-500 flex items-center gap-1">
+                  <Droplets className="w-3 h-3" />
+                  墨迹效果
+                </p>
+
+                <JitterSlider
+                  label="墨迹浓度"
+                  value={jitterInkDensity}
+                  onChange={setJitterInkDensity}
+                  icon={Droplets}
+                />
+
+                <JitterSlider
+                  label="颜色深浅"
+                  value={jitterInkColor}
+                  onChange={setJitterInkColor}
+                  icon={Paintbrush}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-stone-500 flex items-center gap-1">
+                  <Space className="w-3 h-3" />
+                  字间距
+                </p>
+
+                <JitterSlider
+                  label="间距抖动"
+                  value={jitterSpacing}
+                  onChange={setJitterSpacing}
+                  icon={Space}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-stone-500 flex items-center gap-1">
+                  <Rows3 className="w-3 h-3" />
+                  行效果
+                </p>
+
+                <JitterSlider
+                  label="整行漂移"
+                  value={jitterLineDrift}
+                  onChange={setJitterLineDrift}
+                  icon={Rows3}
+                />
+
+                <JitterSlider
+                  label="行倾斜"
+                  value={jitterLineTilt}
+                  onChange={setJitterLineTilt}
+                  icon={SlidersHorizontal}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-stone-500 flex items-center gap-1">
+                  <Feather className="w-3 h-3" />
+                  笔触特效
+                </p>
+
+                <JitterSlider
+                  label="重影晕染"
+                  value={jitterHalo}
+                  onChange={setJitterHalo}
+                  icon={Sparkles}
+                />
+
+                <JitterSlider
+                  label="飞白干笔"
+                  value={jitterDryBrush}
+                  onChange={setJitterDryBrush}
+                  icon={Feather}
+                />
+              </div>
+
+              <div className="pt-2">
+                <p className="text-xs font-semibold text-stone-500 mb-2">快速预设</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    onClick={() => {
+                      setJitterPositionX(0.2)
+                      setJitterPositionY(0.2)
+                      setJitterSize(0.15)
+                      setJitterRotation(0.1)
+                      setJitterBaseline(0.15)
+                      setJitterInkDensity(0.2)
+                      setJitterInkColor(0.1)
+                      setJitterSpacing(0.15)
+                      setJitterLineDrift(0.1)
+                      setJitterLineTilt(0.05)
+                      setJitterHalo(0.1)
+                      setJitterDryBrush(0.1)
+                    }}
+                    className={cn(
+                      'h-7 rounded-lg text-xs font-medium',
+                      'bg-stone-100 text-stone-600',
+                      'hover:bg-stone-200',
+                      'transition-colors'
+                    )}
+                  >
+                    工整
+                  </button>
+                  <button
+                    onClick={() => {
+                      setJitterPositionX(0.6)
+                      setJitterPositionY(0.6)
+                      setJitterSize(0.5)
+                      setJitterRotation(0.5)
+                      setJitterBaseline(0.5)
+                      setJitterInkDensity(0.5)
+                      setJitterInkColor(0.4)
+                      setJitterSpacing(0.5)
+                      setJitterLineDrift(0.4)
+                      setJitterLineTilt(0.3)
+                      setJitterHalo(0.3)
+                      setJitterDryBrush(0.3)
+                    }}
+                    className={cn(
+                      'h-7 rounded-lg text-xs font-medium',
+                      'bg-amber-100 text-amber-700',
+                      'hover:bg-amber-200',
+                      'transition-colors'
+                    )}
+                  >
+                    自然
+                  </button>
+                  <button
+                    onClick={() => {
+                      setJitterPositionX(1)
+                      setJitterPositionY(1)
+                      setJitterSize(0.9)
+                      setJitterRotation(0.9)
+                      setJitterBaseline(0.85)
+                      setJitterInkDensity(0.9)
+                      setJitterInkColor(0.8)
+                      setJitterSpacing(0.9)
+                      setJitterLineDrift(0.85)
+                      setJitterLineTilt(0.7)
+                      setJitterHalo(0.7)
+                      setJitterDryBrush(0.6)
+                    }}
+                    className={cn(
+                      'h-7 rounded-lg text-xs font-medium',
+                      'bg-orange-100 text-orange-700',
+                      'hover:bg-orange-200',
+                      'transition-colors'
+                    )}
+                  >
+                    潦草
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

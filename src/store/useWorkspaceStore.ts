@@ -8,6 +8,7 @@ import type {
   FontPreset,
   FontCategory,
   FontSource,
+  JitterSettings,
 } from '@/types'
 
 export interface PaperPreset {
@@ -154,6 +155,18 @@ interface WorkspaceState {
   fontSize: number
   inkColor: string
   jitterAmount: number
+  jitterPositionX: number
+  jitterPositionY: number
+  jitterSize: number
+  jitterRotation: number
+  jitterBaseline: number
+  jitterInkDensity: number
+  jitterInkColor: number
+  jitterSpacing: number
+  jitterLineDrift: number
+  jitterLineTilt: number
+  jitterHalo: number
+  jitterDryBrush: number
   selectedPaperId: string
   paperBgColor: string
   paperLineColor: string
@@ -204,6 +217,19 @@ interface WorkspaceState {
   setFontSize: (size: number) => void
   setInkColor: (color: string) => void
   setJitterAmount: (amount: number) => void
+  setJitterPositionX: (value: number) => void
+  setJitterPositionY: (value: number) => void
+  setJitterSize: (value: number) => void
+  setJitterRotation: (value: number) => void
+  setJitterBaseline: (value: number) => void
+  setJitterInkDensity: (value: number) => void
+  setJitterInkColor: (value: number) => void
+  setJitterSpacing: (value: number) => void
+  setJitterLineDrift: (value: number) => void
+  setJitterLineTilt: (value: number) => void
+  setJitterHalo: (value: number) => void
+  setJitterDryBrush: (value: number) => void
+  setJitterSettings: (settings: Partial<JitterSettings>) => void
   setSelectedPaperId: (id: string) => void
   setPaperBgColor: (color: string) => void
   setPaperLineColor: (color: string) => void
@@ -275,6 +301,18 @@ const defaultState = {
   fontSize: 24,
   inkColor: '#3a2e1f',
   jitterAmount: 0.55,
+  jitterPositionX: 0.6,
+  jitterPositionY: 0.6,
+  jitterSize: 0.5,
+  jitterRotation: 0.5,
+  jitterBaseline: 0.5,
+  jitterInkDensity: 0.5,
+  jitterInkColor: 0.4,
+  jitterSpacing: 0.5,
+  jitterLineDrift: 0.4,
+  jitterLineTilt: 0.3,
+  jitterHalo: 0.3,
+  jitterDryBrush: 0.3,
   selectedPaperId: 'grid',
   paperBgColor: '#fdf6e3',
   paperLineColor: '#c8c8c8',
@@ -397,6 +435,58 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   setJitterAmount: (amount) =>
     set({ jitterAmount: amount }),
 
+  setJitterPositionX: (value) =>
+    set({ jitterPositionX: Math.max(0, Math.min(1, value)) }),
+
+  setJitterPositionY: (value) =>
+    set({ jitterPositionY: Math.max(0, Math.min(1, value)) }),
+
+  setJitterSize: (value) =>
+    set({ jitterSize: Math.max(0, Math.min(1, value)) }),
+
+  setJitterRotation: (value) =>
+    set({ jitterRotation: Math.max(0, Math.min(1, value)) }),
+
+  setJitterBaseline: (value) =>
+    set({ jitterBaseline: Math.max(0, Math.min(1, value)) }),
+
+  setJitterInkDensity: (value) =>
+    set({ jitterInkDensity: Math.max(0, Math.min(1, value)) }),
+
+  setJitterInkColor: (value) =>
+    set({ jitterInkColor: Math.max(0, Math.min(1, value)) }),
+
+  setJitterSpacing: (value) =>
+    set({ jitterSpacing: Math.max(0, Math.min(1, value)) }),
+
+  setJitterLineDrift: (value) =>
+    set({ jitterLineDrift: Math.max(0, Math.min(1, value)) }),
+
+  setJitterLineTilt: (value) =>
+    set({ jitterLineTilt: Math.max(0, Math.min(1, value)) }),
+
+  setJitterHalo: (value) =>
+    set({ jitterHalo: Math.max(0, Math.min(1, value)) }),
+
+  setJitterDryBrush: (value) =>
+    set({ jitterDryBrush: Math.max(0, Math.min(1, value)) }),
+
+  setJitterSettings: (settings) =>
+    set((state) => ({
+      jitterPositionX: settings.positionX ?? state.jitterPositionX,
+      jitterPositionY: settings.positionY ?? state.jitterPositionY,
+      jitterSize: settings.size ?? state.jitterSize,
+      jitterRotation: settings.rotation ?? state.jitterRotation,
+      jitterBaseline: settings.baseline ?? state.jitterBaseline,
+      jitterInkDensity: settings.inkDensity ?? state.jitterInkDensity,
+      jitterInkColor: settings.inkColor ?? state.jitterInkColor,
+      jitterSpacing: settings.spacing ?? state.jitterSpacing,
+      jitterLineDrift: settings.lineDrift ?? state.jitterLineDrift,
+      jitterLineTilt: settings.lineTilt ?? state.jitterLineTilt,
+      jitterHalo: settings.halo ?? state.jitterHalo,
+      jitterDryBrush: settings.dryBrush ?? state.jitterDryBrush,
+    })),
+
   setSelectedPaperId: (id) =>
     set({ selectedPaperId: id }),
 
@@ -446,6 +536,18 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
       fontSize: defaultState.fontSize,
       inkColor: defaultState.inkColor,
       jitterAmount: defaultState.jitterAmount,
+      jitterPositionX: defaultState.jitterPositionX,
+      jitterPositionY: defaultState.jitterPositionY,
+      jitterSize: defaultState.jitterSize,
+      jitterRotation: defaultState.jitterRotation,
+      jitterBaseline: defaultState.jitterBaseline,
+      jitterInkDensity: defaultState.jitterInkDensity,
+      jitterInkColor: defaultState.jitterInkColor,
+      jitterSpacing: defaultState.jitterSpacing,
+      jitterLineDrift: defaultState.jitterLineDrift,
+      jitterLineTilt: defaultState.jitterLineTilt,
+      jitterHalo: defaultState.jitterHalo,
+      jitterDryBrush: defaultState.jitterDryBrush,
       selectedPaperId: defaultState.selectedPaperId,
       paperBgColor: defaultState.paperBgColor,
       paperLineColor: defaultState.paperLineColor,
